@@ -59,8 +59,9 @@ import argparse
 import logging
 import time
 import pygame
-
-
+from world import World
+from keyboard_control import KeyboardControl
+from hud import HUD
 def game_loop(args):
     pygame.init()
     pygame.font.init()
@@ -73,8 +74,9 @@ def game_loop(args):
         carla_world = client.load_world(args.map)
         carla_world.unload_map_layer(carla.MapLayer.ParkedVehicles)
 
-        world = World(carla_world, args)
-        controller = KeyboardControl(world)
+        hud = HUD(args.width, args.height)
+        world = World(carla_world, hud, args)
+        controller = KeyboardControl(world, True)
 
         display = pygame.display.set_mode(
             (args.width, args.height),
@@ -86,6 +88,7 @@ def game_loop(args):
             clock.tick_busy_loop(60)
             if controller.parse_events(client, world, clock):
                 return
+            world.tick(clock)
             world.render(display)
             pygame.display.flip()
 
@@ -98,7 +101,6 @@ def game_loop(args):
             world.destroy()
 
         pygame.quit()
-
 
 # ==============================================================================
 # -- main() --------------------------------------------------------------------
@@ -165,8 +167,25 @@ def main():
         default='cpu',
         help='device used for BEV Rendering (default: cpu)',
         choices=['cpu', 'cuda'])
-
-
+    argparser.add_argument(
+        '--rolename',
+        metavar='NAME',
+        default='hero',
+        help='actor role name (default: "hero")')
+    argparser.add_argument(
+        '--filter',
+        metavar='PATTERN',
+        default='vehicle.*',
+        help='actor filter (default: "vehicle.*")')
+    argparser.add_argument(
+        '--gamma',
+        default=2.2,
+        type=float,
+        help='Gamma correction of the camera (default: 2.2)')
+    argparser.add_argument(
+        '-a', '--autopilot',
+        action='store_true',
+        help='enable autopilot')
 
     args = argparser.parse_args()
 
