@@ -158,7 +158,12 @@ class HUD(object):
                     break
                 vehicle_type = get_actor_display_name(vehicle, truncate=22)
                 self._info_text.append('% 4dm %s' % (d, vehicle_type))
-
+        self._info_text += [
+            '',
+            'Distance to Closest Goal:',
+            '% 4f' % world.distance_diff_to_goal,
+            'Rotation Diff to Closest Coal:',
+            '% 4f' % world.rotation_diff_to_goal]
     def toggle_info(self):
         self._show_info = not self._show_info
 

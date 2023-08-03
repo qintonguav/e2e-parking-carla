@@ -76,7 +76,7 @@ def game_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(carla_world, hud, args)
-        controller = KeyboardControl(world, True)
+        controller = KeyboardControl(world, False)
 
         display = pygame.display.set_mode(
             (args.width, args.height),

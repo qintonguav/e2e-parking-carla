@@ -3,6 +3,8 @@ import carla
 
 parking_vehicle_locations_Town04 = [
     carla.Location(x=298.5, y=-235.73, z=0.3),
+    carla.Location(x=290.9, y=-229.63, z=0.3),
+    carla.Location(x=285.6, y=-225.63, z=0.3),
 ]
 
 

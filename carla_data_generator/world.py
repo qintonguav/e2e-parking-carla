@@ -14,7 +14,9 @@ from datetime import datetime
 import pathlib
 import logging
 from queue import Queue, Empty
-
+from threading import Thread
+import json
+import cv2
 
 def find_weather_presets():
     rgx = re.compile('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)')
@@ -40,10 +42,11 @@ class World(object):
         settings.synchronous_model = True
         self.world.apply_settings(settings)
 
-        self.parking_goal_index = 0
+        self.parking_goal_index = 2
         self.parking_spawn_points = parking_position.parking_vehicle_locations_Town04.copy()
         self.target_parking_goal = self.parking_spawn_points[self.parking_goal_index]
         self.ego_transform = parking_position.EgoPostTown04(self.target_parking_goal)
+        self.all_parking_goals = self.parking_spawn_points
 
         self.actor_role_name = args.rolename
         try:
@@ -69,7 +72,7 @@ class World(object):
         self.goal_reach_roation = 0.5
         self.num_frames_goal_need = 60
         self.num_frames_in_goal = 0
-        self.all_parking_goals = []
+        # self.all_parking_goals = []
         self.task_index = 0
         self.sensor_list = []
         self.sensor_queue = Queue()
@@ -306,6 +309,8 @@ class World(object):
         actor_type = get_actor_display_name(self.player)
         self.hud.notification(actor_type)
 
+        self.camera_manager.clear_saved_images()
+
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
         self._weather_index %= len(self._weather_presets)
@@ -380,7 +385,7 @@ class World(object):
                 closest_goal[1] = parking_goal.y
                 closest_goal[2] = r.yaw
 
-        self.rotation_diff_to_goal = math.sqrt(min(abs(r.yaw), 180-abs(r.yaw)) ** 2 + r.roll **2 + r.pitch**2)
+        self.rotation_diff_to_goal = math.sqrt(min(abs(r.yaw), 90-abs(r.yaw)) ** 2 + r.roll **2 + r.pitch**2)
 
         if self.distance_diff_to_goal < self.goal_reach_distance and \
             self.rotation_diff_to_goal < self.goal_reach_roation:
@@ -401,11 +406,94 @@ class World(object):
 
 
     def save_sensor_data(self, parking_goal):
-        pass
+        cur_save_path = pathlib.Path(self.save_path) / ('task' + str(self.task_index))
+        cur_save_path.mkdir(parents=True, exist_ok=False)
+        (cur_save_path / 'measurements').mkdir()
+        (cur_save_path / 'parking_goal').mkdir()
+        (cur_save_path / 'topdown').mkdir()
+
+        for cam_id, cam_spec in self.cam_specs.items():
+            if cam_id.startswith('rgb') or cam_id.startswith('depth'):
+                (cur_save_path / cam_id).mkdir()
+
+        total_frames = len(self.batch_data_frames)
+        thread_num = 10
+        frames_for_thread = total_frames // thread_num
+        thread_list = []
+        for t_idx in range(thread_num):
+            start = t_idx * frames_for_thread
+            if t_idx == thread_num - 1:
+                end = total_frames
+            else:
+                end = (t_idx + 1) * frames_for_thread
+            t = Thread(target=self.save_unit_data, args=(start, end, cur_save_path))
+            t.start()
+            thread_list.append(t)
+
+        for thread in thread_list:
+            thread.join()
+
+        # save parking goal
+        measurements_file = cur_save_path / 'parking_goal' / '0001.json'
+        with open(measurements_file, 'w') as f:
+            data = {'x': parking_goal[0],
+                    'y': parking_goal[1],
+                    'yaw': parking_goal[2]}
+            json.dump(data, f, indent=4)
+
+        self.camera_manager.save_video(cur_save_path)
+
+        logging.info('saved sensor data for task %d in %s', self.task_index, str(cur_save_path))
 
     def save_unit_data(self, start, end, cur_save_path):
-        pass
+        for index in range(start, end):
+            data_frame = self.batch_data_frames[index]
 
+            for sensor in data_frame.keys():
+                if sensor.startwith('rgb') or sensor.startswith('depth'):
+                    data_frame[sensor].save_to_disk(
+                        str(cur_save_path / sensor / ('%04d.png' % index)))
+
+            imu_data = data_frame['imu']
+            gnss_data = data_frame['gnss']
+            vehicle_transform = data_frame['veh_transform']
+            vehicle_velocity = data_frame['veh_velocity']
+            vehicle_control = data_frame['veh_control']
+
+            data = {
+                'x': vehicle_transform.location.x,
+                'y': vehicle_transform.location.y,
+                'z': vehicle_transform.location.z,
+                'pitch': vehicle_transform.rotation.pitch,
+                'yaw': vehicle_transform.rotation.yaw,
+                'roll': vehicle_transform.rotation.roll,
+                'speed': 3.6 * math.sqrt(vehicle_velocity.x ** 2 + vehicle_velocity.y**2 + vehicle_velocity.z**2),
+                'Throttle': vehicle_control.throttle,
+                'Steer': vehicle_control.steer,
+                'Brake': vehicle_control.brake,
+                'Reverse': vehicle_control.reverse,
+                'Hand brake': vehicle_control.hand_brake,
+                'Manual': vehicle_control.manual_gear_shift,
+                'Gear': {-1: 'R', 0: 'N'}.get(vehicle_control.gear, vehicle_control.gear),
+                'acc_x': imu_data.accelerometer.x,
+                'acc_y': imu_data.accelerometer.y,
+                'acc_z': imu_data.accelerometer.z,
+                'gyr_x': imu_data.gyroscope.x,
+                'gyr_y': imu_data.gyroscope.y,
+                'gyr_z': imu_data.gyroscope.z,
+                'compass': imu_data.compass,
+                'lat': gnss_data.latitude,
+                'lon': gnss_data.longitude
+            }
+
+            measurements_file = cur_save_path / 'measurements' / ('%04d.json' % index)
+            with open(measurements_file, 'w') as f:
+                json.dump(data, f, indent=4)
+
+            def save_img(image, keyword=""):
+                img_save = np.moveaxis(image, 0, 2)
+                save_path = str(cur_save_path / 'topdown' / ('encoded_%04d' % index + keyword + '.png'))
+                cv2.imwrite(save_path, img_save)
 
     def render(self, display):
         self.camera_manager.render(display)
@@ -694,6 +782,7 @@ class CameraManager(object):
 
             item.append(bp)
         self.index = None
+        self.images = []
 
     def toggle_camera(self):
         self.transform_index = (self.transform_index + 1) % len(self._camera_transforms)
@@ -731,6 +820,20 @@ class CameraManager(object):
         if self.surface is not None:
             display.blit(self.surface, (0, 0))
 
+    def save_video(self, save_path):
+        if len(self.images) == 0:
+            return
+        height, width = self.images[0].shape[:2]
+        video_path = save_path / 'task.avi'
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(str(video_path), fourcc, 20.0, (width, height))
+        for image in self.images:
+            out.write(image)
+        out.release()
+
+    def clear_saved_images(self):
+        self.images.clear()
+
     @staticmethod
     def _parse_image(weak_self, image):
         self = weak_self()
@@ -765,6 +868,10 @@ class CameraManager(object):
             array = array[:, :, :3]
             array = array[:, :, ::-1]
             self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
+
+            image_array = cv2.cvtColor(array, cv2.COLOR_RGB2BGR)
+            self.images.append(image_array)
+
         if self.recording:
             image.save_to_disk('_out/%08d' % image.frame)
 
