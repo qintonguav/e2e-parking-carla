@@ -99,7 +99,12 @@ class HUD(object):
         t = world.player.get_transform()
         v = world.player.get_velocity()
         c = world.player.get_control()
-        compass = world.imu_sensor.compass
+        compass = math.degrees(world.sensor_data_frame['imu'].compass)
+        acc = world.sensor_data_frame['imu'].accelerometer
+        gyr = world.sensor_data_frame['imu'].gyroscope
+        lat = world.sensor_data_frame['gnss'].latitude
+        lon = world.sensor_data_frame['gnss'].longitude
+
         heading = 'N' if compass > 270.5 or compass < 89.5 else ''
         heading += 'S' if 90.5 < compass < 269.5 else ''
         heading += 'E' if 0.5 < compass < 179.5 else ''
@@ -119,10 +124,10 @@ class HUD(object):
             '',
             'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)),
             u'Compass:% 17.0f\N{DEGREE SIGN} % 2s' % (compass, heading),
-            'Accelero: (%5.1f,%5.1f,%5.1f)' % (world.imu_sensor.accelerometer),
-            'Gyroscop: (%5.1f,%5.1f,%5.1f)' % (world.imu_sensor.gyroscope),
+            'Accelero: (%5.1f,%5.1f,%5.1f)' % (acc.x, acc.y, acc.z),
+            'Gyroscop: (%5.1f,%5.1f,%5.1f)' % (gyr.x, gyr.y, gyr.z),
             'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
-            'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (world.gnss_sensor.lat, world.gnss_sensor.lon)),
+            'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (lat, lon)),
             'Height:  % 18.0f m' % t.location.z,
             '']
         if isinstance(c, carla.VehicleControl):

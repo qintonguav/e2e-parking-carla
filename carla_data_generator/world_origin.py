@@ -9,11 +9,6 @@ import weakref
 import collections
 import pygame
 import numpy as np
-import parking_position
-from datetime import datetime
-import pathlib
-import logging
-from queue import Queue, Empty
 
 
 def find_weather_presets():
@@ -26,25 +21,10 @@ def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
     return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
 
-def sensor_callback(sensor_data, sensor_queue, sensor_name):
-    if sensor_queue.qsize() > 10:
-        return
-    sensor_queue.put((sensor_data, sensor_name))
 
 class World(object):
     def __init__(self, carla_world, hud, args):
-
         self.world = carla_world
-        settings = self.world.get_settings()
-        settings.fixed_delta_seconds = float(1. / 30)
-        settings.synchronous_model = True
-        self.world.apply_settings(settings)
-
-        self.parking_goal_index = 0
-        self.parking_spawn_points = parking_position.parking_vehicle_locations_Town04.copy()
-        self.target_parking_goal = self.parking_spawn_points[self.parking_goal_index]
-        self.ego_transform = parking_position.EgoPostTown04(self.target_parking_goal)
-
         self.actor_role_name = args.rolename
         try:
             self.map = self.world.get_map()
@@ -53,39 +33,9 @@ class World(object):
             print('  The server could not send the OpenDRIVE (.xodr) file:')
             print('  Make sure it exists, has the same name of your town, and is correct.')
             sys.exit(1)
-
-        now = datetime.now()
-        result_dir = '_'.join(map(lambda x : '%02d' % x, (now.month, now.day, now.hour, now.minute, now.second)))
-        self.save_path = pathlib.Path(args.save_path) / args.map/ result_dir
-        self.save_path.mkdir(parents=True, exist_ok=False)
-
-        # collection related settings
-        self.save_frequency = 3
-        self.step = -1
-        self.num_tasks = args.task_num
-        self.distance_diff_to_goal = 10000
-        self.goal_reach_distance = 0.5
-        self.rotation_diff_to_goal = 1000
-        self.goal_reach_roation = 0.5
-        self.num_frames_goal_need = 60
-        self.num_frames_in_goal = 0
-        self.all_parking_goals = []
-        self.task_index = 0
-        self.sensor_list = []
-        self.sensor_queue = Queue()
-        self.veh2cam_dict = {}
-        self.sensor_data_frame = {}
-        self.batch_data_frames = []
-        self.cam_config = {}
-        self.cam_center = None
-        self.cam_specs = None
-        self.intrinsic = None
-        self.cam2pixel = None
-
         # self.hud = HUD(args.width, args.height)
         self.hud = hud
         self.player = None
-        self.spectator = None
         self.collision_sensor = None
         self.lane_invasion_sensor = None
         self.gnss_sensor = None
@@ -96,7 +46,7 @@ class World(object):
         self._weather_index = 0
         self._actor_filter = args.filter
         self._gamma = args.gamma
-        # self.restart()
+        self.restart()
         self.world.on_tick(self.hud.on_world_tick)
         self.recording_enabled = False
         self.recording_start = 0
@@ -116,150 +66,12 @@ class World(object):
             carla.MapLayer.All
         ]
 
-        self.init(args)
-
-    def init(self, args):
-        logging.info('***************init environment for task ****************', self.task_index)
-        self.destroy()
-
-        #self.init_static_npc()
-        ego_transform = self.ego_transform.get_ego_transform()
-        ego_vehicle_bp = self.world.get_blueprint_library().find('vehicle.tesla.model3')
-        self.player = self.world.spawn_actor(ego_vehicle_bp, ego_transform)
-        self.spectator = self.world.get_spectator()
-        self.spectator.set_transform(carla.Transform(carla.Location(x=283.85, y=-210.039, z=35),
-                                                     carla.Rotation(pitch=-90)))
-        actor_type = get_actor_display_name(self.player)
-        self.hud.notification(actor_type)
-
-        self.camera_manager = CameraManager(self.player, self.hud, self._gamma)
-        self.camera_manager.transform_index = 0
-        self.camera_manager.set_sensor(0, notify=False)
-
-        self.setup_sensors()
-        self.next_weather()
-
-        logging.info('*************init enviroment for task %d done***********', self.task_index)
-
-    def setup_sensors(self):
-        # collision
-        self.collision_sensor = CollisionSensor(self.player, self.hud)
-
-        # gnss
-        bp_gnss = self.world.get_blueprint_library().find('sensor.other.gnss')
-        gnss = self.world.spawn_actor(bp_gnss, carla.Transform(), attach_to=self.player,
-                                      attachment_type=carla.AttachmentType.Rigid)
-        gnss.listen(lambda data: sensor_callback(data, self.sensor_queue, "gnss"))
-        self.sensor_list.append(gnss)
-
-        # imu
-        bp_imu = self.world.get_blueprint_library().find('sensor.other.imu')
-        imu = self.world.spawn_actor(bp_imu, carla.Transform(), attach_to=self.player,
-                                      attachment_type=carla.AttachmentType.Rigid)
-        imu.listen(lambda data: sensor_callback(data, self.sensor_queue, "imu"))
-        self.sensor_list.append(imu)
-
-        self.cam_config = {
-            'width': 400,
-            'height': 300,
-            'fov': 100,
-        }
-        self.cam_center = np.array([self.cam_config['width'] / 2.0, self.cam_config['height'] / 2.0])
-        self.cam_specs = {
-            'rgb_front': {
-                'x': 1.5, 'y': 0.0, 'z': 1.5,
-                'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-                'type': 'sensor.camera.rgb',
-            },
-            'rgb_left': {
-                'x': 0.0, 'y': -0.8, 'z': 1.5,
-                'roll': 0.0, 'pitch': -40.0, 'yaw': -90.0,
-                'type': 'sensor.camera.rgb',
-            },
-            'rgb_right': {
-                'x': 0.0, 'y': 0.8, 'z': 1.5,
-                'roll': 0.0, 'pitch': -40.0, 'yaw': 90.0,
-                'type': 'sensor.camera.rgb',
-            },
-            'rgb_rear': {
-                'x': -2.2, 'y': 0.0, 'z': 1.5,
-                'roll': 0.0, 'pitch': -30.0, 'yaw': 180.0,
-                'type': 'sensor.camera.rgb',
-            },
-            'depth_front': {
-                'x': 1.5, 'y': 0.0, 'z': 1.5,
-                'roll': 0.0, 'pitch': 0.0, 'yaw': 0.0,
-                'type': 'sensor.camera.depth',
-            },
-            'depth_left': {
-                'x': 0.0, 'y': -0.8, 'z': 1.5,
-                'roll': 0.0, 'pitch': -40.0, 'yaw': -90.0,
-                'type': 'sensor.camera.depth',
-            },
-            'depth_right': {
-                'x': 0.0, 'y': 0.8, 'z': 1.5,
-                'roll': 0.0, 'pitch': -40.0, 'yaw': 90.0,
-                'type': 'sensor.camera.depth',
-            },
-            'depth_rear': {
-                'x': -2.2, 'y': 0.0, 'z': 1.5,
-                'roll': 0.0, 'pitch': -30.0, 'yaw': 180.0,
-                'type': 'sensor.camera.depth',
-            },
-        }
-
-        for key, value in self.cam_specs.items():
-            self.spawn_rgb_camera(key, value)
-
-        w = self.cam_config['width']
-        h = self.cam_config['height']
-        fov = self.cam_config['fov']
-        f = w / (2 * np.tan(fov * np.pi / 360.))
-        cu = w / 2
-        cv = h / 2
-        self.intrinsic = np.array([
-            [f, 0, cu],
-            [0, f, cv],
-            [0, 0, 1]
-        ], dtype=np.float)
-
-        self.cam2pixel = np.array([[0, 1, 0 , 0],
-                                   [0, 0, -1, 0],
-                                   [1, 0, 0, 0],
-                                   [0, 0, 0, 1]], dtype=float)
-
-        for cam_id, cam_spec in self.cam_specs.items():
-            if cam_id.startswith('rgb'):
-                cam2veh = carla.Transform(carla.Location(x=cam_spec['x'], y=cam_spec['y'], z=cam_spec['z']),
-                                         carla.Rotation(yaw=cam_spec['yaw'], pitch=cam_spec['pitch'],
-                                                        roll=cam_spec['roll']))
-                veh2cam = self.cam2pixel @ np.array(cam2veh.get_inverse_matrix())
-                self.veh2cam_dict[cam_id] = veh2cam
-
-    def spawn_rgb_camera(self, sensor_id, sensor_spec):
-        blueprint_library = self.world.get_blueprint_library()
-        bp = blueprint_library.find(sensor_spec['type'])
-        bp.set_attribute('image_size_x', str(self.cam_config['width']))
-        bp.set_attribute('image_size_y', str(self.cam_config['height']))
-        bp.set_attribute('fov', str(self.cam_config['fov']))
-        sensor_location = carla.Location(x=sensor_spec['x'],
-                                         y=sensor_spec['y'],
-                                         z=sensor_spec['z'])
-        sensor_rotation = carla.Rotation(pitch=sensor_spec['pitch'],
-                                         roll=sensor_spec['roll'],
-                                         yaw=sensor_spec['yaw'])
-        sensor_transform = carla.Transform(sensor_location, sensor_rotation)
-        cam = self.world.spawn_actor(bp, sensor_transform, attach_to=self.player,
-                                      attachment_type=carla.AttachmentType.Rigid)
-        cam.listen(lambda data: sensor_callback(data, self.sensor_queue, sensor_id))
-        self.sensor_list.append(cam)
-
     def restart(self):
         self.player_max_speed = 1.589
         self.player_max_speed_fast = 3.713
         # Keep same camera config if the camera manager exists.
-        # cam_index = self.camera_manager.index if self.camera_manager is not None else 0
-        # cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
+        cam_index = self.camera_manager.index if self.camera_manager is not None else 0
+        cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
         # Get a random blueprint.
         blueprint = random.choice(self.world.get_blueprint_library().filter(self._actor_filter))
         blueprint.set_attribute('role_name', self.actor_role_name)
@@ -341,71 +153,7 @@ class World(object):
         vehicle.apply_physics_control(physics_control)
 
     def tick(self, clock):
-        try:
-            t = self.player.get_transform()
-            v = self.player.get_velocity()
-            c = self.player.get_control()
-            self.sensor_data_frame['veh_transform'] = t
-            self.sensor_data_frame['veh_velocity'] = v
-            self.sensor_data_frame['veh_control'] = c
-
-            for i in range(0, len(self.sensor_list)):
-                s_data = self.sensor_queue.get(block=True, timeout=1.0)
-                self.sensor_data_frame[s_data[1]] = s_data[0]
-
-        except Empty:
-            logging.error("Some of the sensor information is missed")
-
         self.hud.tick(self, clock)
-
-        self.world.debug.draw_string(self.target_parking_goal, 'T',
-                                     draw_shadow=True, color=carla.Color(255, 0, 0))
-
-        self.step += 1
-        if self.step % self.save_frequency == 0:
-            self.batch_data_frames.append(self.sensor_data_frame.copy())
-
-        self.check_goal()
-
-    def check_goal(self, save_sensors=True):
-        t = self.player.get_transform().location
-        r = self.player.get_transform().rotation
-
-        self.distance_diff_to_goal = sys.float_info.max
-        closest_goal = [0.0, 0.0, 0.0]
-        for parking_goal in self.all_parking_goals:
-            if t.distance(parking_goal) < self.distance_diff_to_goal:
-                self.distance_diff_to_goal = t.distance(parking_goal)
-                closest_goal[0] = parking_goal.x
-                closest_goal[1] = parking_goal.y
-                closest_goal[2] = r.yaw
-
-        self.rotation_diff_to_goal = math.sqrt(min(abs(r.yaw), 180-abs(r.yaw)) ** 2 + r.roll **2 + r.pitch**2)
-
-        if self.distance_diff_to_goal < self.goal_reach_distance and \
-            self.rotation_diff_to_goal < self.goal_reach_roation:
-            self.num_frames_in_goal += 1
-        else:
-            self.num_frames_in_goal = 0
-
-        if self.num_frames_in_goal > self.num_frames_goal_need:
-            logging.info('task %d goal reached; ready to save sensor data', self.task_index)
-            self.save_sensor_data(closest_goal)
-            logging.info('**************task %d done****************', self.task_index)
-            self.task_index += 1
-
-            if self.task_index >= self.num_tasks:
-                logging.info('completed all tasks; Thank you!')
-                exit(0)
-            self.restart()
-
-
-    def save_sensor_data(self, parking_goal):
-        pass
-
-    def save_unit_data(self, start, end, cur_save_path):
-        pass
-
 
     def render(self, display):
         self.camera_manager.render(display)
@@ -417,33 +165,20 @@ class World(object):
         self.camera_manager.index = None
 
     def destroy(self):
-
-        sensors = self.sensor_list
-        if self.camera_manager is not None:
-            sensors.append(self.camera_manager.sensor)
-
-        if self.collision_sensor is not None:
-            sensors.append(self.collision_sensor.sensor)
-
+        if self.radar_sensor is not None:
+            self.toggle_radar()
+        sensors = [
+            self.camera_manager.sensor,
+            self.collision_sensor.sensor,
+            self.lane_invasion_sensor.sensor,
+            self.gnss_sensor.sensor,
+            self.imu_sensor.sensor]
         for sensor in sensors:
             if sensor is not None:
                 sensor.stop()
                 sensor.destroy()
-
-        self.sensor_list.clear()
-        self.camera_manager = None
-        self.collision_sensor = None
-
         if self.player is not None:
             self.player.destroy()
-
-        self.batch_data_frames.clear()
-        self.sensor_data_frame.clear()
-        self.sensor_queue = Queue()
-        self.step = -1
-        self.num_frames_in_goal = 0
-
-        logging.info('destroying done.')
 
 class CollisionSensor(object):
     def __init__(self, parent_actor, hud):
