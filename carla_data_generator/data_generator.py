@@ -84,7 +84,7 @@ def game_loop(args):
 
         clock = pygame.time.Clock()
         while True:
-            world.world.tick()
+            world.carla_world.tick()
             clock.tick_busy_loop(60)
             if controller.parse_events(client, world, clock):
                 return
@@ -106,6 +106,13 @@ def game_loop(args):
 # -- main() --------------------------------------------------------------------
 # ==============================================================================
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Unsupported value encountered.')
 
 def main():
     argparser = argparse.ArgumentParser(
@@ -186,6 +193,11 @@ def main():
         '-a', '--autopilot',
         action='store_true',
         help='enable autopilot')
+    argparser.add_argument(
+        '--record_video',
+        default=True,
+        type=str2bool,
+        help='record parking video (default: True)')
 
     args = argparser.parse_args()
 
