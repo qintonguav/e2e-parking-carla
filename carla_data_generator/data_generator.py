@@ -171,8 +171,8 @@ def main():
         help='random seed to initialize env; if sets to 0, use current timestamp as seed (default: 1)')
     argparser.add_argument(
         '--bev_render_device',
-        default='cpu',
-        help='device used for BEV Rendering (default: cpu)',
+        default='cuda',
+        help='device used for BEV Rendering (default: cuda)',
         choices=['cpu', 'cuda'])
     argparser.add_argument(
         '--rolename',

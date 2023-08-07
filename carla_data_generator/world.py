@@ -15,7 +15,8 @@ import cv2
 
 from camera_manager import CameraManager
 from sensors import GnssSensor, IMUSensor, CollisionSensor, LaneInvasionSensor, RadarSensor
-from tools import get_actor_display_name
+from tools import get_actor_display_name, encode_npy_to_pil
+from bev_render import BevRender
 
 def find_weather_presets():
     rgx = re.compile('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)')
@@ -24,8 +25,8 @@ def find_weather_presets():
     return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
 
 def sensor_callback(sensor_data, sensor_queue, sensor_name):
-    if sensor_queue.qsize() > 100:
-        # logging.info('sensor queue is full, throw sensor callbacks')
+    if sensor_queue.qsize() > 2000:
+        #logging.info('sensor queue is full, throw sensor callbacks')
         return
     sensor_queue.put((sensor_data, sensor_name))
 
@@ -71,10 +72,10 @@ class World(object):
         # self.all_parking_goals = []
         self.task_index = 0
         self.sensor_list = []
-        self.sensor_queue = Queue()
         self.veh2cam_dict = {}
         self.sensor_data_frame = {}
         self.batch_data_frames = []
+        self.sensor_queue = Queue()
         self.cam_config = {}
         self.cam_center = None
         self.cam_specs = None
@@ -82,6 +83,7 @@ class World(object):
         self.cam2pixel = None
         self.actor_list = []
         self.record_video = args.record_video
+        self.bev_render = None
 
         # self.hud = HUD(args.width, args.height)
         self.hud = hud
@@ -117,9 +119,9 @@ class World(object):
             carla.MapLayer.All
         ]
 
-        self.init(args)
+        self.init()
 
-    def init(self, args):
+    def init(self):
         logging.info('***************init environment for task **************** {}'.format(self.task_index))
         self.destroy()
 
@@ -136,6 +138,8 @@ class World(object):
         self.camera_manager = CameraManager(self.player, self.hud, self._gamma, self.record_video)
         self.camera_manager.transform_index = 0
         self.camera_manager.set_sensor(0, notify=False)
+
+        self.bev_render = BevRender(self, 'cuda')
 
         self.setup_sensors()
         self.next_weather()
@@ -291,58 +295,10 @@ class World(object):
         self.sensor_list.append(cam)
 
     def restart(self):
-        self.player_max_speed = 1.589
-        self.player_max_speed_fast = 3.713
-        # Keep same camera config if the camera manager exists.
-        # cam_index = self.camera_manager.index if self.camera_manager is not None else 0
-        # cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
-        # Get a random blueprint.
-        blueprint = random.choice(self.carla_world.get_blueprint_library().filter(self._actor_filter))
-        blueprint.set_attribute('role_name', self.actor_role_name)
-        if blueprint.has_attribute('color'):
-            color = random.choice(blueprint.get_attribute('color').recommended_values)
-            blueprint.set_attribute('color', color)
-        if blueprint.has_attribute('driver_id'):
-            driver_id = random.choice(blueprint.get_attribute('driver_id').recommended_values)
-            blueprint.set_attribute('driver_id', driver_id)
-        if blueprint.has_attribute('is_invincible'):
-            blueprint.set_attribute('is_invincible', 'true')
-        # set the max speed
-        if blueprint.has_attribute('speed'):
-            self.player_max_speed = float(blueprint.get_attribute('speed').recommended_values[1])
-            self.player_max_speed_fast = float(blueprint.get_attribute('speed').recommended_values[2])
-        else:
-            print("No recommended values for 'speed' attribute")
-        # Spawn the player.
-        if self.player is not None:
-            spawn_point = self.player.get_transform()
-            spawn_point.location.z += 2.0
-            spawn_point.rotation.roll = 0.0
-            spawn_point.rotation.pitch = 0.0
-            self.destroy()
-            self.player = self.carla_world.try_spawn_actor(blueprint, spawn_point)
-            self.modify_vehicle_physics(self.player)
-        while self.player is None:
-            if not self.map.get_spawn_points():
-                print('There are no spawn points available in your map/town.')
-                print('Please add some Vehicle Spawn Point to your UE4 scene.')
-                sys.exit(1)
-            spawn_points = self.map.get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
-            self.player = self.carla_world.try_spawn_actor(blueprint, spawn_point)
-            self.modify_vehicle_physics(self.player)
-        # Set up the sensors.
-        self.collision_sensor = CollisionSensor(self.player, self.hud)
-        self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud)
-        self.gnss_sensor = GnssSensor(self.player)
-        self.imu_sensor = IMUSensor(self.player)
-        self.camera_manager = CameraManager(self.player, self.hud, self._gamma, self.record_video)
-        self.camera_manager.transform_index = cam_pos_index
-        self.camera_manager.set_sensor(cam_index, notify=False)
-        actor_type = get_actor_display_name(self.player)
-        self.hud.notification(actor_type)
-
+        self.batch_data_frames = []
+        self.sensor_queue = Queue()
         self.camera_manager.clear_saved_images()
+        self.init()
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -402,10 +358,10 @@ class World(object):
         self.step += 1
         if self.step % self.save_frequency == 0:
             self.sensor_data_frame['bev_state'] = self.get_bev_states()
-            if len(self.batch_data_frames) > 200:
+            if len(self.batch_data_frames) > 2000:
                 logging.info('too long for parking, this trip will be reset!')
             else:
-                print('len batch_data_frames', len(self.batch_data_frames))
+                # print('len batch_data_frames', len(self.batch_data_frames))
                 self.batch_data_frames.append(self.sensor_data_frame.copy())
 
         self.check_goal()
@@ -498,7 +454,7 @@ class World(object):
             data_frame = self.batch_data_frames[index]
 
             for sensor in data_frame.keys():
-                if sensor.startwith('rgb') or sensor.startswith('depth'):
+                if sensor.startswith('rgb') or sensor.startswith('depth'):
                     data_frame[sensor].save_to_disk(
                         str(cur_save_path / sensor / ('%04d.png' % index)))
 
@@ -543,7 +499,7 @@ class World(object):
                 save_path = str(cur_save_path / 'topdown' / ('encoded_%04d' % index + keyword + '.png'))
                 cv2.imwrite(save_path, img_save)
 
-            bev_view = self.camera_manager.render_BEV(data_frame['bev_state'])
+            bev_view = self.bev_render.render_BEV(data_frame['bev_state'])
             img = encode_npy_to_pil(np.asarray(bev_view.squeeze().cpu()))
             save_img(img, "")
 
