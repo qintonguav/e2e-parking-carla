@@ -119,7 +119,9 @@ class World(object):
             carla.MapLayer.All
         ]
 
+        self.bev_render = BevRender(self, 'cuda')
         self.init()
+
 
     def init(self):
         logging.info('***************init environment for task **************** {}'.format(self.task_index))
@@ -132,17 +134,17 @@ class World(object):
         self.spectator = self.carla_world.get_spectator()
         self.spectator.set_transform(carla.Transform(carla.Location(x=283.85, y=-210.039, z=35),
                                                      carla.Rotation(pitch=-90)))
+        self.bev_render.set_player(self.player)
         actor_type = get_actor_display_name(self.player)
         self.hud.notification(actor_type)
+
+        self.next_weather()
 
         self.camera_manager = CameraManager(self.player, self.hud, self._gamma, self.record_video)
         self.camera_manager.transform_index = 0
         self.camera_manager.set_sensor(0, notify=False)
 
-        self.bev_render = BevRender(self, 'cuda')
-
         self.setup_sensors()
-        self.next_weather()
 
         logging.info('*************init enviroment for task %d done*********** {}'.format(self.task_index))
 
@@ -525,6 +527,10 @@ class World(object):
             if sensor is not None:
                 sensor.stop()
                 sensor.destroy()
+
+        for actor in self.actor_list:
+            actor.destroy()
+        self.actor_list.clear()
 
         self.sensor_list.clear()
         self.camera_manager = None

@@ -78,6 +78,9 @@ class BevRender:
 
         self.detection_radius = 50.0
 
+    def set_player(self, player):
+        self._vehicle = player
+
     def render_BEV(self, state):
 
         ego_t = state["ego_t"]
