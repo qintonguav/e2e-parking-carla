@@ -42,7 +42,7 @@ class World(object):
         self.parking_goal_index = 2
         self.parking_spawn_points = parking_position.parking_vehicle_locations_Town04.copy()
         self.target_parking_goal = self.parking_spawn_points[self.parking_goal_index]
-        self.ego_transform = parking_position.EgoPostTown04(self.target_parking_goal)
+        self.ego_transform_generator = parking_position.EgoPosTown04()
         self.all_parking_goals = self.parking_spawn_points
 
         self.actor_role_name = args.rolename
@@ -128,7 +128,8 @@ class World(object):
         self.destroy()
 
         self.init_static_vehicles()
-        ego_transform = self.ego_transform.get_ego_transform()
+        self.ego_transform_generator.update_data_gen_goal_y(self.target_parking_goal.y)
+        ego_transform = self.ego_transform_generator.get_data_gen_ego_transform()
         ego_vehicle_bp = self.carla_world.get_blueprint_library().find('vehicle.tesla.model3')
         self.player = self.carla_world.spawn_actor(ego_vehicle_bp, ego_transform)
         self.spectator = self.carla_world.get_spectator()
