@@ -10,9 +10,9 @@ from threading import Thread
 import numpy as np
 import cv2
 
-from data_generation import parking_position
-from data_generation.map_utils import encode_npy_to_pil
-from data_generation.world import World
+from carla_data_generator import parking_position
+from carla_data_generator.tools import encode_npy_to_pil
+from carla_data_generator.world import World
 
 
 class DataGenerator:
@@ -24,7 +24,7 @@ class DataGenerator:
 
         self._parking_goal_index = 17  # 2-2; index 15+2=17
         self._parking_goal = parking_position.parking_vehicle_locations_Town04[self._parking_goal_index]
-        self._ego_transform_generator = parking_position.EgoPostTown04()
+        self._ego_transform_generator = parking_position.EgoPosTown04()
 
         now = datetime.now()
         result_dir = '_'.join(map(lambda x: '%02d' % x, (now.month, now.day, now.hour, now.minute, now.second)))
