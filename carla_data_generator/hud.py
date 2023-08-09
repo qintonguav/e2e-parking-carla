@@ -1,21 +1,47 @@
-# from __future__ import print_function
-
-import pygame
-import os
-import carla
-import math
-import datetime
-
-
 """
 Welcome to CARLA manual control.
 
 Use ARROWS or WASD keys for control.
+
+    W            : throttle
+    S            : brake
+    A/D          : steer left/right
+    Q            : toggle reverse
+    Space        : hand-brake
+    M            : toggle manual transmission
+    ,/.          : gear up/down
+
+    L            : toggle next light type
+    SHIFT + L    : toggle high beam
+    Z/X          : toggle right/left blinker
+    I            : toggle interior light
+
+    TAB          : change sensor position
+    ` or N       : next sensor
+    [1-9]        : change to sensor [1-9]
+    G            : toggle radar visualization
+    C            : change weather (Shift+C reverse)
+    Backspace    : restart the task
+
+    CTRL + R     : toggle recording of simulation (replacing any previous)
+    CTRL + P     : start replaying last recorded simulation
+    CTRL + +     : increments the start time of the replay by 1 second (+SHIFT = 10 seconds)
+    CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
+
+    F1           : toggle HUD
+    H/?          : toggle help
+    ESC          : quit
 """
 
-def get_actor_display_name(actor, truncate=250):
-    name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
-    return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
+import datetime
+import glob
+import math
+import os
+import sys
+
+import pygame
+
+import carla
 
 
 class FadingText(object):
@@ -41,11 +67,12 @@ class FadingText(object):
     def render(self, display):
         display.blit(self.surface, self.pos)
 
+
 class HelpText(object):
     """Helper class to handle text output using pygame"""
+
     def __init__(self, font, width, height):
-        #lines = __doc__.split('\n')
-        lines = ["help"]
+        lines = __doc__.split('\n')
         self.font = font
         self.line_space = 18
         self.dim = (780, len(lines) * self.line_space + 12)
@@ -67,6 +94,11 @@ class HelpText(object):
             display.blit(self.surface, self.pos)
 
 
+def get_actor_display_name(actor, truncate=250):
+    name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
+    return (name[:truncate - 1] + u'\u2026') if len(name) > truncate else name
+
+
 class HUD(object):
     def __init__(self, width, height):
         self.dim = (width, height)
@@ -84,6 +116,7 @@ class HUD(object):
         self.simulation_time = 0
         self._show_info = True
         self._info_text = []
+        self._info_dict = {}
         self._server_clock = pygame.time.Clock()
 
     def on_world_tick(self, timestamp):
@@ -93,27 +126,21 @@ class HUD(object):
         self.simulation_time = timestamp.elapsed_seconds
 
     def tick(self, world, clock):
+
+        compass = math.degrees(world.sensor_data_frame['imu'].compass)
+        acc = world.sensor_data_frame['imu'].accelerometer
+
         self._notifications.tick(world, clock)
         if not self._show_info:
             return
         t = world.player.get_transform()
         v = world.player.get_velocity()
         c = world.player.get_control()
-        compass = math.degrees(world.sensor_data_frame['imu'].compass)
-        acc = world.sensor_data_frame['imu'].accelerometer
-        gyr = world.sensor_data_frame['imu'].gyroscope
-        lat = world.sensor_data_frame['gnss'].latitude
-        lon = world.sensor_data_frame['gnss'].longitude
 
         heading = 'N' if compass > 270.5 or compass < 89.5 else ''
         heading += 'S' if 90.5 < compass < 269.5 else ''
         heading += 'E' if 0.5 < compass < 179.5 else ''
         heading += 'W' if 180.5 < compass < 359.5 else ''
-        colhist = world.collision_sensor.get_collision_history()
-        collision = [colhist[x + self.frame - 200] for x in range(0, 200)]
-        max_col = max(1.0, max(collision))
-        collision = [x / max_col for x in collision]
-        vehicles = world.carla_world.get_actors().filter('vehicle.*')
         self._info_text = [
             'Server:  % 16.0f FPS' % self.server_fps,
             'Client:  % 16.0f FPS' % clock.get_fps(),
@@ -122,13 +149,12 @@ class HUD(object):
             'Map:     % 20s' % world.map.name,
             'Simulation time: % 12s' % datetime.timedelta(seconds=int(self.simulation_time)),
             '',
-            'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)),
-            u'Compass:% 17.0f\N{DEGREE SIGN} % 2s' % (compass, heading),
+            'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2)),
             'Accelero: (%5.1f,%5.1f,%5.1f)' % (acc.x, acc.y, acc.z),
-            'Gyroscop: (%5.1f,%5.1f,%5.1f)' % (gyr.x, gyr.y, gyr.z),
-            'Location:% 20s' % ('(% 5.1f, % 5.1f)' % (t.location.x, t.location.y)),
-            'GNSS:% 24s' % ('(% 2.6f, % 3.6f)' % (lat, lon)),
-            'Height:  % 18.0f m' % t.location.z,
+            'Location   x: %.6f' % t.location.x,
+            'Location   y: %.6f' % t.location.y,
+            'Location   z: %.6f' % t.location.z,
+            'Rotation yaw: %.6f' % t.rotation.yaw,
             '']
         if isinstance(c, carla.VehicleControl):
             self._info_text += [
@@ -145,25 +171,11 @@ class HUD(object):
                 ('Jump:', c.jump)]
         self._info_text += [
             '',
-            'Collision:',
-            collision,
-            '',
-            'Number of vehicles: % 8d' % len(vehicles)]
-        if len(vehicles) > 1:
-            self._info_text += ['Nearby vehicles:']
-            distance = lambda l: math.sqrt((l.x - t.location.x)**2 + (l.y - t.location.y)**2 + (l.z - t.location.z)**2)
-            vehicles = [(distance(x.get_location()), x) for x in vehicles if x.id != world.player.id]
-            for d, vehicle in sorted(vehicles, key=lambda vehicles: vehicles[0]):
-                if d > 200.0:
-                    break
-                vehicle_type = get_actor_display_name(vehicle, truncate=22)
-                self._info_text.append('% 4dm %s' % (d, vehicle_type))
-        self._info_text += [
-            '',
-            'Distance to Closest Goal:',
-            '% 4f' % world.distance_diff_to_goal,
-            'Rotation Diff to Closest Coal:',
-            '% 4f' % world.rotation_diff_to_goal]
+            'Distance x diff: % .6f' % world.x_diff_to_goal,
+            'Distance y diff: % .6f' % world.y_diff_to_goal,
+            'Distance   diff: % .6f' % world.distance_diff_to_goal,
+            'Rotation   diff: % .6f' % world.rotation_diff_to_goal]
+
     def toggle_info(self):
         self._show_info = not self._show_info
 
