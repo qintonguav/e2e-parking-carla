@@ -53,12 +53,14 @@ COLOR_TRAFFIC_GREEN = pygame.Color(0, 0, 255)
 class BevRender:
     def __init__(self, world, device):
         self._device = device
-        self._world = world.carla_world
+        self._world = world.world
         self._vehicle = world.player
         self._actors = None
 
         hd_map = self._map = self._world.get_map().to_opendrive()
         self.world_map = carla.Map("RouteMap", hd_map)
+
+        self.vehicle_template = torch.ones(1, 1, 22, 9, device=self._device)
 
         # create map for renderer
         map_image = MapImage(self._world, self.world_map, PIXELS_PER_METER)
@@ -70,11 +72,11 @@ class BevRender:
         self.global_map[:, 0, ...] = road / 255.
         self.global_map[:, 1, ...] = lane / 255.
 
-        self.global_map = torch.tensor(self.global_map, device='cuda', dtype=torch.float32)
-        world_offset = torch.tensor(map_image._world_offset, device='cuda', dtype=torch.float32)
+        self.global_map = torch.tensor(self.global_map, device=self._device, dtype=torch.float32)
+        world_offset = torch.tensor(map_image._world_offset, device=self._device, dtype=torch.float32)
         self.map_dims = self.global_map.shape[2:4]
 
-        self.renderer = Renderer(world_offset, self.map_dims, data_generation=True)
+        self.renderer = Renderer(world_offset, self.map_dims, data_generation=True, device=self._device)
 
         self.detection_radius = 50.0
 
@@ -88,8 +90,8 @@ class BevRender:
 
         # fetch local birdview per agent
         ego_pos = torch.tensor([ego_t.location.x, ego_t.location.y],
-                               device='cuda', dtype=torch.float32)
-        ego_yaw = torch.tensor([ego_t.rotation.yaw / 180 * np.pi], device='cuda',
+                               device=self._device, dtype=torch.float32)
+        ego_yaw = torch.tensor([ego_t.rotation.yaw / 180 * np.pi], device=self._device,
                                dtype=torch.float32)
         birdview = self.renderer.get_local_birdview(
             semantic_grid,
@@ -120,9 +122,64 @@ class BevRender:
 
         return birdview
 
+    def get_bev_states(self):
+        def get_element_ts(keyword):
+            elements = self._world.get_actors().filter(keyword)
+            ts = [carla.Transform(element.get_transform().location, element.get_transform().rotation)
+                  for element in elements]
+            return ts
+
+        return {
+            "ego_t": carla.Transform(self._vehicle.get_transform().location,
+                                     self._vehicle.get_transform().rotation),
+            "vehicle_ts": get_element_ts("*vehicle*"),
+        }
+
+    def render_BEV_from_state(self, state):
+
+        ego_t = state["ego_t"]
+
+        semantic_grid = self.global_map
+
+        # fetch local birdview per agent
+        ego_pos = torch.tensor([ego_t.location.x, ego_t.location.y],
+                               device=self._device, dtype=torch.float32)
+        ego_yaw = torch.tensor([ego_t.rotation.yaw / 180 * np.pi], device=self._device,
+                               dtype=torch.float32)
+        birdview = self.renderer.get_local_birdview(
+            semantic_grid,
+            ego_pos,
+            ego_yaw
+        )
+
+        # vehicle is only used for id and bbox, which is never changed during the play
+        # WARNING: the order of filter('*vehicle*') can't be changed or bug occurs here
+        for vehicle_t, vehicle in zip(state["vehicle_ts"], self._world.get_actors().filter('*vehicle*')):
+            if vehicle.id != self._vehicle.id:
+                if vehicle_t.location.distance(ego_t.location) < self.detection_radius:
+                    pos = torch.tensor([vehicle_t.location.x, vehicle_t.location.y],
+                                       device=self._device, dtype=torch.float32)
+                    yaw = torch.tensor([vehicle_t.rotation.yaw / 180 * np.pi], device=self._device,
+                                       dtype=torch.float32)
+                    veh_x_extent = int(max(vehicle.bounding_box.extent.x * 2, 1) * PIXELS_PER_METER)
+                    veh_y_extent = int(max(vehicle.bounding_box.extent.y * 2, 1) * PIXELS_PER_METER)
+
+                    self.vehicle_template = torch.ones(1, 1, veh_x_extent, veh_y_extent, device=self._device)
+                    self.renderer.render_agent_bv(
+                        birdview,
+                        ego_pos,
+                        ego_yaw,
+                        self.vehicle_template,
+                        pos,
+                        yaw,
+                        channel=5
+                    )
+
+        return birdview
+
 class Renderer():
-    def __init__(self, map_offset, map_dims, data_generation=True):
-        self.args = {'device': 'cuda'}
+    def __init__(self, map_offset, map_dims, data_generation=True, device='cpu'):
+        self.args = {'device': device}
         if data_generation:
             self.PIXELS_AHEAD_VEHICLE = 0 # ego car is central
             self.local_view_dims = (500, 500)
