@@ -5,10 +5,8 @@ import carla
 
 import pygame
 
-from data_generation.world import World
-from data_generation.data_generator import DataGenerator
-from data_generation.keyboard_control import KeyboardControl
-from data_generation.g29_control import DualControl
+from carla_data_generator.data_generator import DataGenerator
+from carla_data_generator.keyboard_control import KeyboardControl
 
 
 def game_loop(args):
@@ -25,7 +23,6 @@ def game_loop(args):
 
         data_generator = DataGenerator(carla_world, args)
         controller = KeyboardControl(data_generator.world)
-        # controller = DualControl(data_generator.world)
 
         display = pygame.display.set_mode(
             (args.width, args.height),
@@ -35,8 +32,6 @@ def game_loop(args):
         while True:
             data_generator.world_tick()
             clock.tick_busy_loop(60)
-            # switch g29
-            # if controller.parse_events(client, data_generator.world, clock):
             if controller.parse_events(client, data_generator.world, clock):
                 return
             data_generator.tick(clock)
