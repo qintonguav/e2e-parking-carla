@@ -34,10 +34,8 @@ Use ARROWS or WASD keys for control.
 """
 
 import datetime
-import glob
 import math
 import os
-import sys
 
 import pygame
 
