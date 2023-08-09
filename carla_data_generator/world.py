@@ -36,7 +36,7 @@ class World(object):
         self.carla_world = carla_world
         settings = self.carla_world.get_settings()
         settings.fixed_delta_seconds = float(1. / 30)
-        settings.synchronous_model = True
+        settings.synchronous_mode = True
         self.carla_world.apply_settings(settings)
 
         self.parking_goal_index = 2
