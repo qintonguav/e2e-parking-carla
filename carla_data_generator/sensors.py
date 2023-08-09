@@ -1,9 +1,4 @@
-import collections
-import glob
 import logging
-import math
-import os
-import sys
 import weakref
 
 import cv2

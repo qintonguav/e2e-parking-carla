@@ -51,7 +51,7 @@ def game_loop(args):
 
 def main():
     argparser = argparse.ArgumentParser(
-        description='CARLA Manual Control Client')
+        description='CARLA Data Generation')
     argparser.add_argument(
         '-v', '--verbose',
         action='store_true',
@@ -80,7 +80,7 @@ def main():
         help='Gamma correction of the camera (default: 0.0)')
     argparser.add_argument(
         '--save_path',
-        default='/home/yunfan/data/e2e_parking_0712/',
+        default='/home/yunfan/data/e2e_parking/',
         help='path to save sensor data (default: ./results/)')
     argparser.add_argument(
         '--task_num',

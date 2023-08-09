@@ -19,6 +19,6 @@ def encode_npy_to_pil(bev_array):
         elif 5 <= i <= 9:
             img[1] = img[1] | (bev[i] << (8 - (i - 5) - 1))
         elif 10 <= i <= 14:
-            img[2] = img[2] | (bev[i] << (8 - (i - 10) - 1 ))
+            img[2] = img[2] | (bev[i] << (8 - (i - 10) - 1))
 
     return img

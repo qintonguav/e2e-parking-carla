@@ -85,7 +85,7 @@ parking_vehicle_locations_Town04 = [
 
 class EgoPosTown04:
     def __init__(self):
-        self.x = 285.600006   # 2-1 slot.x
+        self.x = 285.600006  # 2-1 slot.x
         self.y = -243.729996  # 2-1 slot.y - 8.0
         self.z = 0.32682
         self.yaw = 90.0
