@@ -7,10 +7,10 @@ from queue import Queue, Empty
 import numpy as np
 import carla
 
-from data_generation.hud import HUD, get_actor_display_name
-from data_generation.sensors import CollisionSensor, CameraManager
-from data_generation import parking_position
-from data_generation.bev_render import BEVRender
+from carla_data_generator.hud import HUD, get_actor_display_name
+from carla_data_generator.sensors import CollisionSensor, CameraManager
+from carla_data_generator import parking_position
+from carla_data_generator.bev_render import BevRender
 
 parking_vehicle_rotation = [
     carla.Rotation(yaw=180),
@@ -127,7 +127,7 @@ class World(object):
         ego_vehicle_bp = self._world.get_blueprint_library().find('vehicle.tesla.model3')
         self._player = self._world.spawn_actor(ego_vehicle_bp, ego_transform)
 
-        self._bev_render = BEVRender(self._world, self._player, self._bev_render_device)
+        self._bev_render = BevRender(self, self._bev_render_device)
 
         self._spectator = self._world.get_spectator()
         # self._spectator.set_transform(carla.Transform(ego_transform.location + carla.Location(z=50),
