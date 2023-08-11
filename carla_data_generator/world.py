@@ -101,6 +101,8 @@ class World(object):
         self._distance_diff_to_goal = 0
         self._rotation_diff_to_goal = 0
 
+        self._need_init_ego_state = True
+
     def restart(self, seed, target_index, ego_transform):
 
         # spawn static vehicles in the parking lot
@@ -121,6 +123,8 @@ class World(object):
             self.next_weather()
 
         self._camera_manager.clear_saved_images()
+
+        self._need_init_ego_state = True
 
     def init_ego_vehicle(self, ego_transform):
 
@@ -214,6 +218,8 @@ class World(object):
         #                                               carla.Rotation(pitch=-90)))
 
         self._camera_manager.clear_saved_images()
+
+        self._need_init_ego_state = True
 
     def setup_sensors(self):
 
@@ -440,6 +446,14 @@ class World(object):
     @keyboard_restart_task.setter
     def keyboard_restart_task(self, activate):
         self._keyboard_restart_task = activate
+
+    @property
+    def need_init_ego_state(self):
+        return self._need_init_ego_state
+
+    @need_init_ego_state.setter
+    def need_init_ego_state(self, need_init_ego_state):
+        self._need_init_ego_state = need_init_ego_state
 
     def render_BEV_from_state(self, state):
         return self._bev_render.render_BEV_from_state(state)

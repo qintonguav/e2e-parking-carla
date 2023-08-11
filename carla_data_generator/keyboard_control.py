@@ -44,16 +44,22 @@ class KeyboardControl(object):
     """Class that handles keyboard input."""
 
     def __init__(self, world):
-        if isinstance(world.player, carla.Vehicle):
+        self._world = world
+        if isinstance(self._world.player, carla.Vehicle):
             self._control = carla.VehicleControl()
             self._lights = carla.VehicleLightState.NONE
-            world.player.set_light_state(self._lights)
+            self._world.player.set_light_state(self._lights)
         else:
             raise NotImplementedError("Actor type not supported")
         self._steer_cache = 0.0
-        world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
+        self._world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
 
     def parse_events(self, client, world, clock):
+        # collision or restart task
+        if self._world.need_init_ego_state:
+            self._control = carla.VehicleControl()
+            self._world.need_init_ego_state = False
+
         if isinstance(self._control, carla.VehicleControl):
             current_lights = self._lights
         for event in pygame.event.get():
