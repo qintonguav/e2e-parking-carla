@@ -1,31 +1,22 @@
 import torch
 
 
-class VoxelSumming(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, x, geom_feats, ranks):
-        x = x.cumsum(0)
-        kept = torch.ones(x.shape[0], device=x.device, dtype=torch.bool)
-        kept[:-1] = (ranks[1:] != ranks[:-1])
+def add_target_bev(cfg, bev_feature, target_point):
+    b, c, h, w = bev_feature.shape
+    bev_target = torch.zeros((b, 1, h, w), dtype=torch.float).to(cfg.device, non_blocking=True)
 
-        x, geom_feats = x[kept], geom_feats[kept]
-        x = torch.cat((x[:1], x[1:] - x[:-1]))
+    x_pixel = (h / 2 + target_point[:, 0] / cfg.bev_x_bound[2]).unsqueeze(0).T.int()
+    y_pixel = (w / 2 + target_point[:, 1] / cfg.bev_y_bound[2]).unsqueeze(0).T.int()
+    target_point = torch.cat([x_pixel, y_pixel], dim=1)
 
-        # save kept for backward
-        ctx.save_for_backward(kept)
+    noise = (torch.rand_like(target_point, dtype=torch.float) * 10 - 5).int()
+    target_point += noise
 
-        # no gradient for geom_feats
-        ctx.mark_non_differentiable(geom_feats)
+    for batch in range(b):
+        bev_target_batch = bev_target[batch][0]
+        target_point_batch = target_point[batch]
+        bev_target_batch[target_point_batch[0] - 4:target_point[0] + 4,
+                         target_point_batch[1] - 4:target_point[1] + 4] = 1.0
 
-        return x, geom_feats
-
-    @staticmethod
-    def backward(ctx, gradx, gradgeom):
-        kept, = ctx.saved_tensors
-        back = torch.cumsum(kept, 0)
-        back[kept] -= 1
-
-        val = gradx[back]
-
-        return val, None, None
-
+    bev_feature = torch.cat([bev_feature, bev_target], dim=1)
+    return bev_feature
