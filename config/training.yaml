@@ -1,0 +1,9 @@
+parking_model:
+  # dataloader
+  data_dir: '/home/dlonng/parking_dataset/'
+
+  # bev
+
+  # transformer encoder
+
+  # transformer decoder
