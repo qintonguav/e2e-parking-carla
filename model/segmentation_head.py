@@ -1,6 +1,8 @@
 import torch
+import math
 from torch import nn
 from tool.config import Configuration
+import torch.nn.functional as F
 
 
 class SegmentationHead(nn.Module):
@@ -8,5 +10,35 @@ class SegmentationHead(nn.Module):
         super(SegmentationHead, self).__init__()
         self.cfg = cfg
 
-    def forward(self, x):
-        pass
+        self.in_channel = self.cfg.bev_encoder_out_channel
+        self.out_channel = self.cfg.bev_encoder_in_channel
+        self.seg_classes = self.cfg.seg_classes
+
+        self.relu = nn.ReLU(inplace=True)
+        self.up_sample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
+        self.c5_conv = nn.Conv2d(self.in_channel, self.out_channel, (1, 1))
+        self.up_conv4 = nn.Conv2d(self.out_channel, self.out_channel, (1, 1))
+        self.up_conv3 = nn.Conv2d(self.out_channel, self.out_channel, (1, 1))
+        self.up_conv2 = nn.Conv2d(self.out_channel, self.out_channel, (1, 1))
+
+        self.segmentation_head = nn.Sequential(
+            nn.Conv2d(self.out_channel, self.out_channel, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(self.out_channel),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(self.out_channel, self.seg_classes, kernel_size=1, padding=0, bias=False)
+        )
+
+    def top_down(self, x):
+        p5 = self.relu(self.c5_conv(x))
+        p4 = self.relu(self.up_conv4(self.up_sample(p5)))
+        p3 = self.relu(self.up_conv3(self.up_sample(p4)))
+        p2 = self.relu(self.up_conv2(self.up_sample(p3)))
+        p1 = F.interpolate(p2, size=(200, 200), mode="bilinear", align_corners=False)
+        return p1
+
+    def forward(self, fuse_feature):
+        b, c, s = fuse_feature.shape
+        fuse_feature = fuse_feature.reshape(b, c, int(math.sqrt(s)), -1)
+        x = self.top_down(fuse_feature)
+        pred_segmentation = self.segmentation_head(x)
+        return pred_segmentation

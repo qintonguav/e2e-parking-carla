@@ -1,8 +1,15 @@
 parking_model:
   # dataloader
   data_dir: '/home/dlonng/parking_dataset/'
+  log_dir: './log/'
 
   # bev
+  in_channel: 64
+  out_channel: 256
+
+  # segmentation
+  seg_classes: 3
+  seg_vehicle_weights: [0.1, 0.2, 0.2]
 
   # transformer encoder
 
