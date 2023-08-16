@@ -34,9 +34,9 @@ class ParkingModel(nn.Module):
 
         bev_down_sample = self.bev_encoder(bev_feature)
 
-        pred_segmentation = self.segmentation_head(bev_down_sample)
-
         fuse_feature = self.feature_fusion(bev_down_sample, ego_motion)
+
+        pred_segmentation = self.segmentation_head(fuse_feature)
 
         return fuse_feature, pred_segmentation, pred_depth, bev_target
 

@@ -10,7 +10,7 @@ class SegmentationHead(nn.Module):
         super(SegmentationHead, self).__init__()
         self.cfg = cfg
 
-        self.in_channel = self.cfg.bev_encoder_out_channel
+        self.in_channel = self.cfg.bev_encoder_out_channel + 2
         self.out_channel = self.cfg.bev_encoder_in_channel
         self.seg_classes = self.cfg.seg_classes
 
@@ -37,6 +37,7 @@ class SegmentationHead(nn.Module):
         return p1
 
     def forward(self, fuse_feature):
+        fuse_feature = fuse_feature.transpose(1, 2)
         b, c, s = fuse_feature.shape
         fuse_feature = fuse_feature.reshape(b, c, int(math.sqrt(s)), -1)
         x = self.top_down(fuse_feature)
