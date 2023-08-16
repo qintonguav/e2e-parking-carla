@@ -7,6 +7,15 @@ parking_model:
   in_channel: 64
   out_channel: 256
 
+  # bev model
+  bev_x_bound: [-10.0, 10.0, 0.1]
+  bev_y_bound: [-10.0, 10.0, 0.1]
+  bev_z_bound: [-10.0, 10.0, 20.0]
+  d_bound: [0.5, 12.5, 0.25]
+  final_dim: [256, 256]
+  bev_down_sample: 8
+  use_depth_distribution: 1
+
   # segmentation
   seg_classes: 3
   seg_vehicle_weights: [0.1, 0.2, 0.2]

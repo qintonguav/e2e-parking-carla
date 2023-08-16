@@ -1,4 +1,3 @@
-import torch
 import math
 from torch import nn
 from tool.config import Configuration
