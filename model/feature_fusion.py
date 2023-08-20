@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from tool.config import Configuration
-
+from timm.models.layers import trunc_normal_
 
 class FeatureFusion(nn.Module):
     def __init__(self, cfg: Configuration):
@@ -12,7 +12,7 @@ class FeatureFusion(nn.Module):
         self.tf_encoder = nn.TransformerEncoder(self.tf_layer, num_layers=self.cfg.tf_en_layers)
 
         total_length = self.cfg.tf_en_bev_length
-        self.pos_emb = nn.Parameter(torch.randn(1, total_length, self.cfg.tf_en_dim) * .02)
+        self.pos_embed = nn.Parameter(torch.randn(1, total_length, self.cfg.tf_en_dim) * .02)
         self.pos_drop = nn.Dropout(self.cfg.tf_en_dropout)
 
         uint_dim = total_length / 4
@@ -28,14 +28,21 @@ class FeatureFusion(nn.Module):
         self.init_weight()
 
     def init_weight(self):
-        # Todo
-        pass
+        for name, p in self.named_parameters():
+            if 'pos_embed' in name:
+                continue
+            if p.dim() > 1:
+                nn.init.xavier_uniform(p)
+        trunc_normal_(self.pos_emb, std=.02)
 
     def forward(self, bev_feature, ego_motion):
         bev_feature = bev_feature.transpose(1, 2)
+
         motion_feature = self.motion_encoder(ego_motion).expand(-1, -1, 2)
         fuse_feature = torch.cat([bev_feature, motion_feature], dim=2)
-        fuse_feature = self.pos_drop(fuse_feature + self.pos_emb)
+
+        fuse_feature = self.pos_drop(fuse_feature + self.pos_embed)
+
         fuse_feature = fuse_feature.transpose(0, 1)
         fuse_feature = self.tf_encoder(fuse_feature)
         fuse_feature = fuse_feature.transpose(0, 1)
