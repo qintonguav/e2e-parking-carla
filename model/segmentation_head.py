@@ -9,7 +9,7 @@ class SegmentationHead(nn.Module):
         super(SegmentationHead, self).__init__()
         self.cfg = cfg
 
-        self.in_channel = self.cfg.bev_encoder_out_channel + 2
+        self.in_channel = self.cfg.bev_encoder_out_channel
         self.out_channel = self.cfg.bev_encoder_in_channel
         self.seg_classes = self.cfg.seg_classes
 

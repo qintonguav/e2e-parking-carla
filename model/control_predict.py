@@ -12,7 +12,7 @@ class ControlPredict(nn.Module):
 
         self.embedding = nn.Embedding(self.cfg.token_nums, self.cfg.tf_de_dim)
         self.pos_drop = nn.Dropout(self.cfg.tf_de_dropout)
-        self.pos_embed = nn.Parameter(self.cfg.token_num, self.cfg.tf_de_dim)
+        self.pos_embed = nn.Parameter(self.cfg.token_nums, self.cfg.tf_de_dim)
 
         self.tf_layer = nn.TransformerDecoderLayer(d_model=self.cfg.tf_de_dim, nhead=self.cfg.tf_de_heads)
         self.tf_decoder = nn.TransformerDecoder(self.tf_layer, num_layers=self.cfg.tf_de_layers)

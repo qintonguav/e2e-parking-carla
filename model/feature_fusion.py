@@ -3,6 +3,7 @@ from torch import nn
 from tool.config import Configuration
 from timm.models.layers import trunc_normal_
 
+
 class FeatureFusion(nn.Module):
     def __init__(self, cfg: Configuration):
         super(FeatureFusion, self).__init__()

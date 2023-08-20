@@ -8,7 +8,7 @@ class ControlLoss(nn.Module):
     def __init__(self, cfg: Configuration):
         super(ControlLoss, self).__init__()
         self.cfg = cfg
-        self.ignore_idx = 255
+        self.ignore_idx = self.cfg.ignore_idx
         self.ce_loss = nn.CrossEntropyLoss(ignore_index=self.ignore_idx)
 
     def forward(self, pred, data):
@@ -22,7 +22,7 @@ class ControlValLoss(nn.Module):
     def __init__(self, cfg: Configuration):
         super(ControlValLoss, self).__init__()
         self.cfg = cfg
-        self.ignore_idx = 255
+        self.ignore_idx = self.cfg.ignore_idx
 
         self.valid_token = self.cfg.token_nums - 4
         self.half_token = float(self.valid_token / 2)

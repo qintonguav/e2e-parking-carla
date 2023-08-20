@@ -8,7 +8,7 @@ class SegmentationLoss(nn.Module):
     def __init__(self, cfg: Configuration):
         super(SegmentationLoss, self).__init__()
         self.cfg = cfg
-        self.ignore_index = 255
+        self.ignore_index = self.cfg.ignore_index
         self.class_weights = self.cfg.seg_vehicle_weights
 
     def forward(self, pred, target):

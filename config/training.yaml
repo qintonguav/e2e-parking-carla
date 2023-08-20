@@ -2,10 +2,17 @@ parking_model:
   # dataloader
   data_dir: '/home/dlonng/parking_dataset/'
   log_dir: './log/'
+  ckpt_dir: './ckpt'
+  log_every_n_step: xx
+  check_val_every_n_train: xx
 
-  # bev
-  in_channel: 64
-  out_channel: 256
+  # train
+  learning_rate: xxx
+  device: 'cuda'
+
+  # bev encoder
+  bev_encoder_in_channel: 64
+  bev_encoder_out_channel: 258  # 256 + 2
 
   # bev model
   bev_x_bound: [-10.0, 10.0, 0.1]
@@ -19,8 +26,24 @@ parking_model:
   # segmentation
   seg_classes: 3
   seg_vehicle_weights: [0.1, 0.2, 0.2]
+  ignore_index: 255
+
+  # token seq
+  token_nums: 204
+  bos_idx: 201
+  eos_idx: 202
+  pad_idx: 203
 
   # transformer encoder
-  token_num: 204
+  tf_en_dim: 256
+  tf_en_heads: 6
+  tf_en_layers: 4
+  tf_en_dropout: 0.5
+  tf_en_bev_length: 258
+  tf_en_motion_length: 3
 
   # transformer decoder
+  tf_de_dim: 256
+  tf_de_heads: 6
+  tf_de_layers: 4
+  tf_de_dropout: 0.5
