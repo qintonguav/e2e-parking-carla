@@ -1,77 +1,104 @@
-import torch
-from torch import nn
+import torch.nn as nn
+import numpy as np
 from efficientnet_pytorch import EfficientNet
-
-
-class Up(nn.Module):
-    def __init__(self, in_channels, out_channels, scale_factor=2):
-        super().__init__()
-
-        self.up = nn.Upsample(scale_factor=scale_factor, mode='bilinear',
-                              align_corners=True)
-
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x1, x2):
-        x1 = self.up(x1)
-        x1 = torch.cat([x2, x1], dim=1)
-        return self.conv(x1)
+from model.convolutions import UpsamplingConcat, DeepLabHead
 
 
 class CamEncoder(nn.Module):
-    def __init__(self, D, C, downsample):
-        super(CamEncoder, self).__init__()
+    def __init__(self, cfg, D):
+        super().__init__()
         self.D = D
-        self.C = C
+        self.C = cfg.OUT_CHANNELS
+        self.use_depth_distribution = cfg.USE_DEPTH_DISTRIBUTION
+        self.downsample = cfg.DOWNSAMPLE
+        self.version = cfg.NAME.split('-')[1]
 
-        self.trunk = EfficientNet.from_pretrained("efficientnet-b4")
+        self.backbone = EfficientNet.from_pretrained(cfg.NAME)
+        self.delete_unused_layers()
+        if self.version == 'b4':
+            self.reduction_channel = [0, 24, 32, 56, 160, 448]
+        elif self.version == 'b0':
+            self.reduction_channel = [0, 16, 24, 40, 112, 320]
+        else:
+            raise NotImplementedError
+        self.upsampling_out_channel = [0, 48, 64, 128, 512]
 
-        self.up1 = Up(320+112, 512)
-        self.depthnet = nn.Conv2d(512, self.D + self.C, kernel_size=1, padding=0)
+        index = np.log2(self.downsample).astype(np.int)
 
-    def get_depth_dist(self, x, eps=1e-20):
-        return x.softmax(dim=1)
+        if self.use_depth_distribution:
+            self.depth_layer_1 = DeepLabHead(self.reduction_channel[index+1], self.reduction_channel[index+1], hidden_channel=64)
+            self.depth_layer_2 = UpsamplingConcat(self.reduction_channel[index+1] + self.reduction_channel[index], self.D)
 
-    def get_depth_feat(self, x):
-        x = self.get_eff_depth(x)
-        # Depth
-        x = self.depthnet(x)
+        self.feature_layer_1 = DeepLabHead(self.reduction_channel[index+1], self.reduction_channel[index+1], hidden_channel=64)
+        self.feature_layer_2 = UpsamplingConcat(self.reduction_channel[index+1] + self.reduction_channel[index], self.C)
 
-        depth = self.get_depth_dist(x[:, :self.D])
-        new_x = depth.unsqueeze(1) * x[:, self.D:(self.D + self.C)].unsqueeze(2)
+    def delete_unused_layers(self):
+        indices_to_delete = []
+        for idx in range(len(self.backbone._blocks)):
+            if self.downsample == 8:
+                if self.version == 'b0' and idx > 10:
+                    indices_to_delete.append(idx)
+                if self.version == 'b4' and idx > 21:
+                    indices_to_delete.append(idx)
 
-        return depth, new_x
+        for idx in reversed(indices_to_delete):
+            del self.backbone._blocks[idx]
 
-    def get_eff_depth(self, x):
-        # adapted from https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/efficientnet_pytorch/model.py#L231
+        del self.backbone._conv_head
+        del self.backbone._bn1
+        del self.backbone._avg_pooling
+        del self.backbone._dropout
+        del self.backbone._fc
+
+    def get_features_depth(self, x):
+        # Adapted from https://github.com/lukemelas/EfficientNet-PyTorch/blob/master/efficientnet_pytorch/model.py#L231
         endpoints = dict()
 
         # Stem
-        x = self.trunk._swish(self.trunk._bn0(self.trunk._conv_stem(x)))
+        x = self.backbone._swish(self.backbone._bn0(self.backbone._conv_stem(x)))
         prev_x = x
 
         # Blocks
-        for idx, block in enumerate(self.trunk._blocks):
-            drop_connect_rate = self.trunk._global_params.drop_connect_rate
+        for idx, block in enumerate(self.backbone._blocks):
+            drop_connect_rate = self.backbone._global_params.drop_connect_rate
             if drop_connect_rate:
-                drop_connect_rate *= float(idx) / len(self.trunk._blocks) # scale drop connect_rate
+                drop_connect_rate *= float(idx) / len(self.backbone._blocks)
             x = block(x, drop_connect_rate=drop_connect_rate)
             if prev_x.size(2) > x.size(2):
-                endpoints['reduction_{}'.format(len(endpoints)+1)] = prev_x
+                endpoints['reduction_{}'.format(len(endpoints) + 1)] = prev_x
             prev_x = x
 
+            if self.downsample == 8:
+                if self.version == 'b0' and idx == 10:
+                    break
+                if self.version == 'b4' and idx == 21:
+                    break
+
         # Head
-        endpoints['reduction_{}'.format(len(endpoints)+1)] = x
-        x = self.up1(endpoints['reduction_5'], endpoints['reduction_4'])
-        return x
+        endpoints['reduction_{}'.format(len(endpoints) + 1)] = x
+
+        index = np.log2(self.downsample).astype(np.int)
+        input_1 = endpoints['reduction_{}'.format(index + 1)]
+        input_2 = endpoints['reduction_{}'.format(index)]
+
+        feature = self.feature_layer_1(input_1)
+        feature = self.feature_layer_2(feature, input_2)
+
+        if self.use_depth_distribution:
+            depth = self.depth_layer_1(input_1)
+            depth = self.depth_layer_2(depth, input_2)
+        else:
+            depth = None
+
+        return feature, depth
 
     def forward(self, x):
-        depth, x = self.get_depth_feat(x)
-        return x
+        feature, depth = self.get_features_depth(x)  # get feature vector
+
+        # if self.use_depth_distribution:
+        #     depth_prob = depth.softmax(dim=1)
+        #     feature = depth_prob.unsqueeze(1) * feature.unsqueeze(2)  # outer product depth and features
+        # else:
+        #     feature = feature.unsqueeze(2).repeat(1, 1, self.D, 1, 1)
+
+        return feature, depth

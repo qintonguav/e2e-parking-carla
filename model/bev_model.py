@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from model.cam_encoder import CamEncoder
 from tool.config import Configuration
-from tool.voxel_summing import VoxelSumming
+from tool.geometry import VoxelSumming, calculate_birds_eye_view_parameters
 
 
 class BevModel(nn.Module):
@@ -11,9 +11,9 @@ class BevModel(nn.Module):
 
         self.cfg = cfg
 
-        bev_res, bev_start_pos, bev_dim = self.calc_bev_params(self.cfg.bev_x_bound,
-                                                               self.cfg.bev_y_bound,
-                                                               self.cfg.bev_z_bound)
+        bev_res, bev_start_pos, bev_dim = calculate_birds_eye_view_parameters(self.cfg.bev_x_bound,
+                                                                              self.cfg.bev_y_bound,
+                                                                              self.cfg.bev_z_bound)
         self.bev_res = nn.Parameter(bev_res, requires_grad=False)
         self.bev_start_pos = nn.Parameter(bev_start_pos, requires_grad=False)
         self.bev_dim = nn.Parameter(bev_dim, requires_grad=False)
@@ -23,12 +23,6 @@ class BevModel(nn.Module):
         self.cam_encoder = CamEncoder(self.cfg, self.depth_channel)
 
         self.down_sample = self.cfg.bev_down_sample
-
-    def calc_bev_params(self, bev_x_bound, bev_y_bound, bev_z_bound):
-        bev_res = torch.Tensor([row[2] for row in [bev_x_bound, bev_y_bound, bev_z_bound]])
-        bev_start_pos = torch.Tensor([row[0] + row[2] / 2.0 for row in [bev_x_bound, bev_y_bound, bev_z_bound]])
-        bev_dim = torch.LongTensor([(row[1] - row[0]) / row[2] for row in [bev_x_bound, bev_y_bound, bev_z_bound]])
-        return bev_res, bev_start_pos, bev_dim
 
     def create_frustum(self):
         h, w = self.cfg.final_dim
