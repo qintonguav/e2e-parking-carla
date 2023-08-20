@@ -29,12 +29,6 @@ class DepthLoss(nn.Module):
         return depth_loss
 
     def get_down_sampled_gt_depth(self, gt_depths):
-        """
-        Input:
-            gt_depths: [B, N, H, W]
-        Output:
-            gt_depths: [B*N*h*w, d]
-        """
         B, N, H, W = gt_depths.shape
         gt_depths = gt_depths.view(B * N, H // self.down_sample_factor, self.down_sample_factor,
                                    W // self.down_sample_factor, self.down_sample_factor, 1)
