@@ -8,12 +8,12 @@ class CamEncoder(nn.Module):
     def __init__(self, cfg, D):
         super().__init__()
         self.D = D
-        self.C = cfg.OUT_CHANNELS
-        self.use_depth_distribution = cfg.USE_DEPTH_DISTRIBUTION
-        self.downsample = cfg.DOWNSAMPLE
-        self.version = cfg.NAME.split('-')[1]
+        self.C = cfg.bev_encoder_out_channel
+        self.use_depth_distribution = cfg.use_depth_distribution
+        self.downsample = cfg.bev_down_sample
+        self.version = cfg.backbone.split('-')[1]
 
-        self.backbone = EfficientNet.from_pretrained(cfg.NAME)
+        self.backbone = EfficientNet.from_pretrained(cfg.backbone)
         self.delete_unused_layers()
         if self.version == 'b4':
             self.reduction_channel = [0, 24, 32, 56, 160, 448]

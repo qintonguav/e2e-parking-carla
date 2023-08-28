@@ -32,9 +32,9 @@ class BevModel(nn.Module):
         depth_grid = depth_grid.view(-1, 1, 1).expand(-1, down_sample_h, down_sample_w)
         depth_slice = depth_grid.shape[0]
 
-        x_grid = torch.linspace(0, down_sample_w - 1, down_sample_w, dtype=torch.float)
+        x_grid = torch.linspace(0, w - 1, down_sample_w, dtype=torch.float)
         x_grid = x_grid.view(1, 1, down_sample_w).expand(depth_slice, down_sample_h, down_sample_w)
-        y_grid = torch.linspace(0, down_sample_h - 1, down_sample_h, dtype=torch.float)
+        y_grid = torch.linspace(0, h - 1, down_sample_h, dtype=torch.float)
         y_grid = y_grid.view(1, down_sample_h, 1).expand(depth_slice, down_sample_h, down_sample_w)
 
         frustum = torch.stack((x_grid, y_grid, depth_grid), -1)
@@ -68,7 +68,7 @@ class BevModel(nn.Module):
 
         x = x.view(b, n, *x.shape[1:])
         x = x.permute(0, 1, 3, 4, 5, 2)
-        return x
+        return x, depth_prob
 
     def proj_bev_feature(self, geom, image_feature):
         batch, n, d, h, w, c = image_feature.shape
@@ -81,7 +81,7 @@ class BevModel(nn.Module):
 
             x_b = image_feature_b.reshape(N, c)
 
-            geom_b = ((geom_b - (self.bev_start_pos - self.bev_dim / 2.0)) / self.bev_res)
+            geom_b = ((geom_b - (self.bev_start_pos - self.bev_res / 2.0)) / self.bev_res)
             geom_b = geom_b.view(N, 3).long()
 
             mask = ((geom_b[:, 0] >= 0) & (geom_b[:, 0] < self.bev_dim[0])
@@ -90,7 +90,7 @@ class BevModel(nn.Module):
             x_b = x_b[mask]
             geom_b = geom_b[mask]
 
-            ranks = ((geom_b[:, 0] * (self.bev_dim[0] * self.bev_dim[1])
+            ranks = ((geom_b[:, 0] * (self.bev_dim[1] * self.bev_dim[2])
                      + geom_b[:, 1] * (self.bev_dim[2]))
                      + geom_b[:, 2])
             sorts = ranks.argsort()
@@ -108,8 +108,8 @@ class BevModel(nn.Module):
 
     def calc_bev_feature(self, images, intrinsics, extrinsics):
         geom = self.get_geometry(intrinsics, extrinsics)
-        x = self.encoder_forward(images)
-        bev_feature, pred_depth = self.proj_bev_feature(geom, x)
+        x, pred_depth = self.encoder_forward(images)
+        bev_feature = self.proj_bev_feature(geom, x)
         return bev_feature, pred_depth
 
     def forward(self, images, intrinsics, extrinsics):

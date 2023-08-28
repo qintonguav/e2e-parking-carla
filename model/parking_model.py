@@ -13,7 +13,7 @@ class ParkingModel(nn.Module):
 
         self.bev_model = BevModel(self.cfg)
 
-        self.bev_encoder = BevEncoder(self.cfg)
+        self.bev_encoder = BevEncoder(self.cfg.bev_encoder_in_channel)
 
         self.feature_fusion = FeatureFusion(self.cfg)
 

@@ -16,13 +16,13 @@ class FeatureFusion(nn.Module):
         self.pos_embed = nn.Parameter(torch.randn(1, total_length, self.cfg.tf_en_dim) * .02)
         self.pos_drop = nn.Dropout(self.cfg.tf_en_dropout)
 
-        uint_dim = total_length / 4
+        uint_dim = int(self.cfg.tf_en_bev_length / 4)
         self.motion_encoder = nn.Sequential(
             nn.Linear(self.cfg.tf_en_motion_length, uint_dim),
             nn.ReLU(inplace=True),
             nn.Linear(uint_dim, uint_dim * 2),
             nn.ReLU(inplace=True),
-            nn.Linear(uint_dim * 2, self.cfg.tf_en_dim),
+            nn.Linear(uint_dim * 2, self.cfg.tf_en_bev_length),
             nn.ReLU(inplace=True),
         )
 
@@ -39,7 +39,7 @@ class FeatureFusion(nn.Module):
     def forward(self, bev_feature, ego_motion):
         bev_feature = bev_feature.transpose(1, 2)
 
-        motion_feature = self.motion_encoder(ego_motion).expand(-1, -1, 2)
+        motion_feature = self.motion_encoder(ego_motion).transpose(1, 2).expand(-1, -1, 2)
         fuse_feature = torch.cat([bev_feature, motion_feature], dim=2)
 
         fuse_feature = self.pos_drop(fuse_feature + self.pos_embed)

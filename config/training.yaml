@@ -13,9 +13,9 @@ parking_model:
 
   training_map: "Town04_Opt"
   validation_map: "Town04_Opt_Val"
-  future_frame_num: 4
-  hist_frame_num: 10
-  token_num: 204
+  future_frame_nums: 4
+  hist_frame_nums: 10
+  token_nums: 204
   image_crop: 256
 
   # bev encoder

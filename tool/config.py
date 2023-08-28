@@ -16,9 +16,9 @@ class Configuration:
 
     training_map = None
     validation_map = None
-    future_frame_num = None
-    hist_frame_num = None
-    token_num = None
+    future_frame_nums = None
+    hist_frame_nums = None
+    token_nums = None
     image_crop = None
 
     bev_encoder_in_channel = None
@@ -72,9 +72,9 @@ def get_cfg(cfg_yaml: dict):
 
     cfg.training_map = config['training_map']
     cfg.validation_map = config['validation_map']
-    cfg.future_frame_num = config['future_frame_num']
-    cfg.hist_frame_num = config['hist_frame_num']
-    cfg.token_num = config['token_num']
+    cfg.future_frame_nums = config['future_frame_nums']
+    cfg.hist_frame_nums = config['hist_frame_nums']
+    cfg.token_nums = config['token_nums']
     cfg.image_crop = config['image_crop']
 
     cfg.bev_encoder_in_channel = config['bev_encoder_in_channel']

@@ -8,11 +8,11 @@ class ControlPredict(nn.Module):
     def __init__(self, cfg: Configuration):
         super(ControlPredict, self).__init__()
         self.cfg = cfg
-        self.pad_idx = self.cfg.pad_idx
+        self.pad_idx = self.cfg.token_nums - 1
 
         self.embedding = nn.Embedding(self.cfg.token_nums, self.cfg.tf_de_dim)
         self.pos_drop = nn.Dropout(self.cfg.tf_de_dropout)
-        self.pos_embed = nn.Parameter(self.cfg.token_nums, self.cfg.tf_de_dim)
+        self.pos_embed = nn.Parameter(torch.randn(1, self.cfg.tf_de_tgt_dim - 1, self.cfg.tf_de_dim) * .02)
 
         self.tf_layer = nn.TransformerDecoderLayer(d_model=self.cfg.tf_de_dim, nhead=self.cfg.tf_de_heads)
         self.tf_decoder = nn.TransformerDecoder(self.tf_layer, num_layers=self.cfg.tf_de_layers)
@@ -39,7 +39,6 @@ class ControlPredict(nn.Module):
                                         tgt_mask=tgt_mask,
                                         tgt_key_padding_mask=tgt_padding_mask)
         pred_controls = pred_controls.transpose(0, 1)
-        pred_controls = self.output(pred_controls)
         return pred_controls
 
     def forward(self, encoder_out, tgt):
@@ -50,11 +49,12 @@ class ControlPredict(nn.Module):
         tgt_embedding = self.pos_drop(tgt_embedding + self.pos_embed)
 
         pred_controls = self.decoder(encoder_out, tgt_embedding, tgt_mask, tgt_padding_mask)
+        pred_controls = self.output(pred_controls)
         return pred_controls
 
     def predict(self, encoder_out, tgt):
         length = tgt.shape[1]
-        padding = torch.ones(tgt.shape[0], self.cfg.tf_de_dim - length - 1).fill_(self.pad_idx).long().cuda()
+        padding = torch.ones(tgt.shape[0], self.cfg.tf_de_tgt_dim - length - 1).fill_(self.pad_idx).long().to('cuda')
         tgt = torch.cat([tgt, padding], dim=1)
 
         tgt_mask, tgt_padding_mask = self.create_mask(tgt)
@@ -63,7 +63,8 @@ class ControlPredict(nn.Module):
         tgt_embedding = tgt_embedding + self.pos_embed
 
         pred_controls = self.decoder(encoder_out, tgt_embedding, tgt_mask, tgt_padding_mask)
+        pred_controls = self.output(pred_controls)[:, length - 1, :]
 
         pred_controls = pred_controls.softmax(dim=-1)
-        pred_controls = pred_controls.argmax(dim=-1)
+        pred_controls = pred_controls.argmax(dim=-1).view(-1, 1)
         return pred_controls

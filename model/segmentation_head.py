@@ -16,9 +16,9 @@ class SegmentationHead(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.up_sample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
         self.c5_conv = nn.Conv2d(self.in_channel, self.out_channel, (1, 1))
+        self.up_conv5 = nn.Conv2d(self.out_channel, self.out_channel, (1, 1))
         self.up_conv4 = nn.Conv2d(self.out_channel, self.out_channel, (1, 1))
         self.up_conv3 = nn.Conv2d(self.out_channel, self.out_channel, (1, 1))
-        self.up_conv2 = nn.Conv2d(self.out_channel, self.out_channel, (1, 1))
 
         self.segmentation_head = nn.Sequential(
             nn.Conv2d(self.out_channel, self.out_channel, kernel_size=3, stride=1, padding=1, bias=False),
@@ -29,9 +29,9 @@ class SegmentationHead(nn.Module):
 
     def top_down(self, x):
         p5 = self.relu(self.c5_conv(x))
-        p4 = self.relu(self.up_conv4(self.up_sample(p5)))
-        p3 = self.relu(self.up_conv3(self.up_sample(p4)))
-        p2 = self.relu(self.up_conv2(self.up_sample(p3)))
+        p4 = self.relu(self.up_conv5(self.up_sample(p5)))
+        p3 = self.relu(self.up_conv4(self.up_sample(p4)))
+        p2 = self.relu(self.up_conv3(self.up_sample(p3)))
         p1 = F.interpolate(p2, size=(200, 200), mode="bilinear", align_corners=False)
         return p1
 
