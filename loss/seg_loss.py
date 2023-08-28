@@ -5,15 +5,14 @@ import torch.nn.functional as F
 
 
 class SegmentationLoss(nn.Module):
-    def __init__(self, cfg: Configuration):
+    def __init__(self, class_weights):
         super(SegmentationLoss, self).__init__()
-        self.cfg = cfg
-        self.ignore_index = self.cfg.ignore_index
-        self.class_weights = self.cfg.seg_vehicle_weights
+        self.ignore_index = 255
+        self.class_weights = class_weights
 
     def forward(self, pred, target):
         if target.shape[-3] != 1:
-            raise ValueError('index label channel != 1')
+            raise ValueError('index label dim channel != 1')
 
         b, s, c, h, w = pred.shape
         pred_seg = pred.view(b * s, c, h, w)
