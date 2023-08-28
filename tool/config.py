@@ -5,12 +5,21 @@ import os
 class Configuration:
     data_dir = None
     log_dir = None
-    ckpt_dir = None
-    log_every_n_step = None
+    checkpoint_dir = None
+    log_every_n_steps = None
     check_val_every_n_train = None
 
+    epochs = None
     learning_rate = None
-    device = None
+    weight_decay = None
+    batch_size = None
+
+    training_map = None
+    validation_map = None
+    future_frame_num = None
+    hist_frame_num = None
+    token_num = None
+    image_crop = None
 
     bev_encoder_in_channel = None
     bev_encoder_out_channel = None
@@ -22,15 +31,10 @@ class Configuration:
     final_dim = None
     bev_down_sample = None
     use_depth_distribution = None
+    backbone = None
 
     seg_classes = None
     seg_vehicle_weights = None
-    ignore_index = None
-
-    token_nums = None
-    bos_idx = None
-    eos_idx = None
-    pad_idx = None
 
     tf_en_dim = None
     tf_en_heads = None
@@ -43,6 +47,7 @@ class Configuration:
     tf_de_heads = None
     tf_de_layers = None
     tf_de_dropout = None
+    tf_de_tgt_dim = None
 
 
 def get_cfg(cfg_yaml: dict):
@@ -56,12 +61,21 @@ def get_cfg(cfg_yaml: dict):
 
     cfg.data_dir = config['data_dir']
     cfg.log_dir = os.path.join(config['log_dir'], exp_name)
-    cfg.ckpt_dir = os.path.join(config['ckpt_dir'], exp_name)
-    cfg.log_every_n_step = config['log_every_n_step']
+    cfg.checkpoint_dir = os.path.join(config['checkpoint_dir'], exp_name)
+    cfg.log_every_n_steps = config['log_every_n_steps']
     cfg.check_val_every_n_train = config['check_val_every_n_train']
 
+    cfg.epoch = config['epochs']
     cfg.learning_rate = config['learning_rate']
-    cfg.device = config['device']
+    cfg.weight_decay = config['weight_decay']
+    cfg.batch_size = config['batch_size']
+
+    cfg.training_map = config['training_map']
+    cfg.validation_map = config['validation_map']
+    cfg.future_frame_num = config['future_frame_num']
+    cfg.hist_frame_num = config['hist_frame_num']
+    cfg.token_num = config['token_num']
+    cfg.image_crop = config['image_crop']
 
     cfg.bev_encoder_in_channel = config['bev_encoder_in_channel']
     cfg.bev_encoder_out_channel = config['bev_encoder_out_channel']
@@ -73,15 +87,10 @@ def get_cfg(cfg_yaml: dict):
     cfg.final_dim = config['final_dim']
     cfg.bev_down_sample = config['bev_down_sample']
     cfg.use_depth_distribution = config['use_depth_distribution']
+    cfg.backbone = config["backbone"]
 
     cfg.seg_classes = config['seg_classes']
     cfg.seg_vehicle_weights = config['seg_vehicle_weights']
-    cfg.ignore_index = config['ignore_index']
-
-    cfg.token_nums = config['token_nums']
-    cfg.bos_idx = config['bos_idx']
-    cfg.eos_idx = config['eos_idx']
-    cfg.pad_idx = config['pad_idx']
 
     cfg.tf_en_dim = config['tf_en_dim']
     cfg.tf_en_heads = config['tf_en_heads']
@@ -94,8 +103,6 @@ def get_cfg(cfg_yaml: dict):
     cfg.tf_de_heads = config['tf_de_heads']
     cfg.tf_de_layers = config['tf_de_layers']
     cfg.tf_de_dropout = config['tf_de_dropout']
+    cfg.tf_de_tgt_dim = config['tf_de_tgt_dim']
 
     return cfg
-
-
-

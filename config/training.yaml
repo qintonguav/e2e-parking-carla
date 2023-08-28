@@ -1,14 +1,22 @@
 parking_model:
-  # dataloader
+  # train
   data_dir: '/home/dlonng/parking_dataset/'
   log_dir: './log/'
-  ckpt_dir: './ckpt'
-  log_every_n_step: xx
-  check_val_every_n_train: xx
+  checkpoint_dir: './ckpt'
+  log_every_n_steps: 10
+  check_val_every_n_epoch: 5
 
-  # train
-  learning_rate: xxx
-  device: 'cuda'
+  epochs: 155
+  learn_rate: 0.0001
+  weight_decay: 0.0001
+  batch_size: 12
+
+  training_map: "Town04_Opt"
+  validation_map: "Town04_Opt_Val"
+  future_frame_num: 4
+  hist_frame_num: 10
+  token_num: 204
+  image_crop: 256
 
   # bev encoder
   bev_encoder_in_channel: 64
@@ -22,28 +30,23 @@ parking_model:
   final_dim: [256, 256]
   bev_down_sample: 8
   use_depth_distribution: 1
+  backbone: "efficientnet-b4"
 
   # segmentation
   seg_classes: 3
-  seg_vehicle_weights: [0.1, 0.2, 0.2]
-  ignore_index: 255
-
-  # token seq
-  token_nums: 204
-  bos_idx: 201
-  eos_idx: 202
-  pad_idx: 203
+  seg_vehicle_weights: [1.0, 2.0, 2.0]
 
   # transformer encoder
-  tf_en_dim: 256
+  tf_en_dim: 258
   tf_en_heads: 6
   tf_en_layers: 4
   tf_en_dropout: 0.5
-  tf_en_bev_length: 258
+  tf_en_bev_length: 256
   tf_en_motion_length: 3
 
   # transformer decoder
-  tf_de_dim: 256
+  tf_de_dim: 258
   tf_de_heads: 6
   tf_de_layers: 4
   tf_de_dropout: 0.5
+  tf_de_tgt_dim: 15
