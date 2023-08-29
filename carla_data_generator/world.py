@@ -494,7 +494,7 @@ class World(object):
 
         # update spectator
         t = self._player.get_transform().location
-        self._spectator.set_transform(carla.Transform(t + carla.Location(z=50), carla.Rotation(pitch=-90)))
+        self._spectator.set_transform(carla.Transform(t + carla.Location(z=30), carla.Rotation(pitch=-90)))
 
         self._step += 1
 
