@@ -1,0 +1,52 @@
+parking_model:
+  # train
+  data_dir: '/home/dlonng/parking_dataset/'
+  log_dir: './log/'
+  checkpoint_dir: './ckpt'
+  log_every_n_steps: 10
+  check_val_every_n_epoch: 5
+
+  epochs: 155
+  learn_rate: 0.0001
+  weight_decay: 0.0001
+  batch_size: 12
+
+  training_map: "Town04_Opt"
+  validation_map: "Town04_Opt_Val"
+  future_frame_nums: 4
+  hist_frame_nums: 10
+  token_nums: 204
+  image_crop: 256
+
+  # bev encoder
+  bev_encoder_in_channel: 64
+  bev_encoder_out_channel: 258  # 256 + 2
+
+  # bev model
+  bev_x_bound: [-10.0, 10.0, 0.1]
+  bev_y_bound: [-10.0, 10.0, 0.1]
+  bev_z_bound: [-10.0, 10.0, 20.0]
+  d_bound: [0.5, 12.5, 0.25]
+  final_dim: [256, 256]
+  bev_down_sample: 8
+  use_depth_distribution: 1
+  backbone: "efficientnet-b4"
+
+  # segmentation
+  seg_classes: 3
+  seg_vehicle_weights: [1.0, 2.0, 2.0]
+
+  # transformer encoder
+  tf_en_dim: 258
+  tf_en_heads: 6
+  tf_en_layers: 4
+  tf_en_dropout: 0.5
+  tf_en_bev_length: 256
+  tf_en_motion_length: 3
+
+  # transformer decoder
+  tf_de_dim: 258
+  tf_de_heads: 6
+  tf_de_layers: 4
+  tf_de_dropout: 0.5
+  tf_de_tgt_dim: 15
