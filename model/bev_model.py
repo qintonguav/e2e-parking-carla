@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from model.cam_encoder import CamEncoder
 from tool.config import Configuration
-from tool.geometry import VoxelSumming, calculate_birds_eye_view_parameters
+from tool.geometry import VoxelsSumming, calculate_birds_eye_view_parameters
 
 
 class BevModel(nn.Module):
@@ -46,7 +46,7 @@ class BevModel(nn.Module):
         rotation, translation = extrinsics[..., :3, :3], extrinsics[..., :3, 3]
         b, n, _ = translation.shape
 
-        points = self.frustum.squeeze(0).squeeze(0).squeeze(-1)
+        points = self.frustum.unsqueeze(0).unsqueeze(0).unsqueeze(-1)
         points = torch.cat((points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
                             points[:, :, :, :, :, 2:3]), 5)
         combine_transform = rotation.matmul(torch.inverse(intrinsics)).cuda()
@@ -90,18 +90,17 @@ class BevModel(nn.Module):
             x_b = x_b[mask]
             geom_b = geom_b[mask]
 
-            ranks = ((geom_b[:, 0] * (self.bev_dim[1] * self.bev_dim[2])
-                     + geom_b[:, 1] * (self.bev_dim[2]))
-                     + geom_b[:, 2])
+            ranks = (geom_b[:, 0] * (self.bev_dim[1] * self.bev_dim[2])
+                     + geom_b[:, 1] * self.bev_dim[2] + geom_b[:, 2])
             sorts = ranks.argsort()
             x_b, geom_b, ranks = x_b[sorts], geom_b[sorts], ranks[sorts]
 
-            x_b, geom_b = VoxelSumming.apply(x_b, geom_b, ranks)
+            x_b, geom_b = VoxelsSumming.apply(x_b, geom_b, ranks)
 
             bev_feature = torch.zeros((self.bev_dim[2], self.bev_dim[0], self.bev_dim[1], c),
-                                      dtype=torch.float, device=x_b.device)
+                                      dtype=torch.float, device=image_feature_b.device)
             bev_feature[geom_b[:, 2], geom_b[:, 0], geom_b[:, 1]] = x_b
-            tmp_bev_feature = bev_feature.permute((0, 3, 1, 2)).unsqueeze(0)
+            tmp_bev_feature = bev_feature.permute((0, 3, 1, 2)).squeeze(0)
             output[b] = tmp_bev_feature
 
         return output
@@ -114,5 +113,5 @@ class BevModel(nn.Module):
 
     def forward(self, images, intrinsics, extrinsics):
         bev_feature, pred_depth = self.calc_bev_feature(images, intrinsics, extrinsics)
-        return bev_feature, pred_depth
+        return bev_feature.squeeze(1), pred_depth
 

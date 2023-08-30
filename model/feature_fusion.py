@@ -9,8 +9,8 @@ class FeatureFusion(nn.Module):
         super(FeatureFusion, self).__init__()
         self.cfg = cfg
 
-        self.tf_layer = nn.TransformerEncoderLayer(d_model=self.cfg.tf_en_dim, nhead=self.cfg.tf_en_heads)
-        self.tf_encoder = nn.TransformerEncoder(self.tf_layer, num_layers=self.cfg.tf_en_layers)
+        tf_layer = nn.TransformerEncoderLayer(d_model=self.cfg.tf_en_dim, nhead=self.cfg.tf_en_heads)
+        self.tf_encoder = nn.TransformerEncoder(tf_layer, num_layers=self.cfg.tf_en_layers)
 
         total_length = self.cfg.tf_en_bev_length
         self.pos_embed = nn.Parameter(torch.randn(1, total_length, self.cfg.tf_en_dim) * .02)
@@ -24,16 +24,16 @@ class FeatureFusion(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(uint_dim * 2, self.cfg.tf_en_bev_length),
             nn.ReLU(inplace=True),
-        )
+        ).to(self.cfg.device)
 
-        self.init_weight()
+        self.init_weights()
 
-    def init_weight(self):
+    def init_weights(self):
         for name, p in self.named_parameters():
             if 'pos_embed' in name:
                 continue
             if p.dim() > 1:
-                nn.init.xavier_uniform(p)
+                nn.init.xavier_uniform_(p)
         trunc_normal_(self.pos_emb, std=.02)
 
     def forward(self, bev_feature, ego_motion):

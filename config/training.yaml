@@ -7,7 +7,7 @@ parking_model:
   check_val_every_n_epoch: 5
 
   epochs: 155
-  learn_rate: 0.0001
+  learning_rate: 0.0001
   weight_decay: 0.0001
   batch_size: 12
 
@@ -40,7 +40,7 @@ parking_model:
   tf_en_dim: 258
   tf_en_heads: 6
   tf_en_layers: 4
-  tf_en_dropout: 0.5
+  tf_en_dropout: 0.05
   tf_en_bev_length: 256
   tf_en_motion_length: 3
 
@@ -48,5 +48,5 @@ parking_model:
   tf_de_dim: 258
   tf_de_heads: 6
   tf_de_layers: 4
-  tf_de_dropout: 0.5
+  tf_de_dropout: 0.05
   tf_de_tgt_dim: 15

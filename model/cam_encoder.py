@@ -8,7 +8,7 @@ class CamEncoder(nn.Module):
     def __init__(self, cfg, D):
         super().__init__()
         self.D = D
-        self.C = cfg.bev_encoder_out_channel
+        self.C = cfg.bev_encoder_in_channel
         self.use_depth_distribution = cfg.use_depth_distribution
         self.downsample = cfg.bev_down_sample
         self.version = cfg.backbone.split('-')[1]
@@ -26,11 +26,17 @@ class CamEncoder(nn.Module):
         index = np.log2(self.downsample).astype(np.int)
 
         if self.use_depth_distribution:
-            self.depth_layer_1 = DeepLabHead(self.reduction_channel[index+1], self.reduction_channel[index+1], hidden_channel=64)
-            self.depth_layer_2 = UpsamplingConcat(self.reduction_channel[index+1] + self.reduction_channel[index], self.D)
+            self.depth_layer_1 = DeepLabHead(self.reduction_channel[index + 1],
+                                             self.reduction_channel[index + 1],
+                                             hidden_channel=64)
+            self.depth_layer_2 = UpsamplingConcat(self.reduction_channel[index + 1] + self.reduction_channel[index],
+                                                  self.D)
 
-        self.feature_layer_1 = DeepLabHead(self.reduction_channel[index+1], self.reduction_channel[index+1], hidden_channel=64)
-        self.feature_layer_2 = UpsamplingConcat(self.reduction_channel[index+1] + self.reduction_channel[index], self.C)
+        self.feature_layer_1 = DeepLabHead(self.reduction_channel[index + 1],
+                                           self.reduction_channel[index + 1],
+                                           hidden_channel=64)
+        self.feature_layer_2 = UpsamplingConcat(self.reduction_channel[index + 1] + self.reduction_channel[index],
+                                                self.C)
 
     def delete_unused_layers(self):
         indices_to_delete = []

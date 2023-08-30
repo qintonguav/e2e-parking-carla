@@ -49,17 +49,17 @@ class ControlValLoss(nn.Module):
 
         pred_acc_token = pred_acc_token.softmax(dim=-1)
         pred_acc_token = pred_acc_token.argmax(dim=-1)
-        pred_acc_token = pred_acc_token.reshape(-1).to_list()
+        pred_acc_token = pred_acc_token.reshape(-1).tolist()
         pred_acc = [self.detokenize_acc(x) for x in pred_acc_token]
         pred_acc = torch.from_numpy(np.array(pred_acc).astype(np.float32)).cuda()
-        gt_acc = data['gt_acc'].reshape(-1)
+        gt_acc = data['gt_acc'].reshape(-1).cuda()
         acc_val_loss = self.l1_loss(pred_acc, gt_acc)
 
         pred_steer_token = pred_steer_token.softmax(dim=-1)
         pred_steer_token = pred_steer_token.argmax(dim=-1)
-        pred_steer_token = pred_steer_token.reshape(-1).to_list()
+        pred_steer_token = pred_steer_token.reshape(-1)
         pred_steer = self.detokenize_steer(pred_steer_token)
-        gt_steer = data['gt_steer'].reshape(-1)
+        gt_steer = data['gt_steer'].reshape(-1).cuda()
         steer_val_loss = self.l1_loss(pred_steer, gt_steer)
 
         acc_steer_val_loss = (acc_val_loss + steer_val_loss)
@@ -67,9 +67,7 @@ class ControlValLoss(nn.Module):
         pred_reverse_token = pred_reverse_token.softmax(dim=-1)
         p_no_reverse = torch.sum(pred_reverse_token[:, :, :101], dim=-1).reshape(-1)
         p_reverse = torch.sum(pred_reverse_token[:, :, 101:], dim=-1).reshape(-1)
-
-        pred_reverse = torch.stack([p_no_reverse, p_reverse]).T
-
+        pred_reverse = torch.stack((p_no_reverse, p_reverse), dim=0).T
         gt_reverse = data['gt_reverse'].reshape(-1).cuda()
         reverse_val_loss = self.ce_loss(pred_reverse, gt_reverse)
 

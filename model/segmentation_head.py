@@ -21,10 +21,10 @@ class SegmentationHead(nn.Module):
         self.up_conv3 = nn.Conv2d(self.out_channel, self.out_channel, (1, 1))
 
         self.segmentation_head = nn.Sequential(
-            nn.Conv2d(self.out_channel, self.out_channel, kernel_size=3, stride=1, padding=1, bias=False),
+            nn.Conv2d(self.out_channel, self.out_channel, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(self.out_channel),
             nn.ReLU(inplace=True),
-            nn.Conv2d(self.out_channel, self.seg_classes, kernel_size=1, padding=0, bias=False)
+            nn.Conv2d(self.out_channel, self.seg_classes, kernel_size=1, padding=0)
         )
 
     def top_down(self, x):
