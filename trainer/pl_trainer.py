@@ -55,7 +55,7 @@ class ParkingTrainingModule(pl.LightningModule):
             "control_loss": control_loss
         })
 
-        segmentation_loss = self.segmentation_loss_func(pred_segmentation, batch['segmentation'])
+        segmentation_loss = self.segmentation_loss_func(pred_segmentation.unsqueeze(1), batch['segmentation'])
         loss_dict.update({
             "segmentation_loss": segmentation_loss
         })
@@ -85,7 +85,7 @@ class ParkingTrainingModule(pl.LightningModule):
             "reverse_val_loss": reverse_val_loss
         })
 
-        segmentation_val_loss = self.segmentation_loss_func(pred_segmentation, batch['segmentation'])
+        segmentation_val_loss = self.segmentation_loss_func(pred_segmentation.unsqueeze(1), batch['segmentation'])
         val_loss_dict.update({
             "segmentation_val_loss": segmentation_val_loss
         })

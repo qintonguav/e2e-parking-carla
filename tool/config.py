@@ -65,7 +65,7 @@ def get_cfg(cfg_yaml: dict):
     cfg.log_every_n_steps = config['log_every_n_steps']
     cfg.check_val_every_n_train = config['check_val_every_n_train']
 
-    cfg.epoch = config['epochs']
+    cfg.epochs = config['epochs']
     cfg.learning_rate = config['learning_rate']
     cfg.weight_decay = config['weight_decay']
     cfg.batch_size = config['batch_size']
