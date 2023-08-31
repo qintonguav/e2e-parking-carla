@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 class BevEncoder(nn.Module):
     def __init__(self, in_channel):
-        super(BevEncoder, self).__init__()
+        super().__init__()
         trunk = resnet18(pretrained=False, zero_init_residual=True)
 
         self.conv1 = nn.Conv2d(in_channel + 1, 64, kernel_size=7, stride=2, padding=3, bias=False)

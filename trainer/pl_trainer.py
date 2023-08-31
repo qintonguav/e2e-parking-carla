@@ -5,8 +5,9 @@ from tool.config import Configuration
 from loss.control_loss import ControlLoss, ControlValLoss
 from loss.depth_loss import DepthLoss
 from loss.seg_loss import SegmentationLoss
-from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar, LearningRateMonitor
+from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar, LearningRateMonitor, ModelSummary
 from model.parking_model import ParkingModel
+
 
 def setup_callbacks(cfg):
     callbacks = []
@@ -21,6 +22,9 @@ def setup_callbacks(cfg):
 
     progress_bar = TQDMProgressBar()
     callbacks.append(progress_bar)
+
+    model_summary = ModelSummary(max_depth=2)
+    callbacks.append(model_summary)
 
     lr_monitor = LearningRateMonitor()
     callbacks.append(lr_monitor)
@@ -70,6 +74,7 @@ class ParkingTrainingModule(pl.LightningModule):
             "train_loss": train_loss
         })
 
+        self.log_dict(loss_dict)
         self.log_segmentation(pred_segmentation, batch, 'segmentation')
         self.log_depth(pred_depth, batch, 'depth')
 
@@ -100,6 +105,7 @@ class ParkingTrainingModule(pl.LightningModule):
             "val_loss": val_loss
         })
 
+        self.log_dict(val_loss_dict)
         self.log_segmentation(pred_segmentation, batch, 'segmentation_val')
         self.log_depth(pred_depth, batch, 'depth_val')
 

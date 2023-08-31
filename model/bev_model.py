@@ -7,7 +7,7 @@ from tool.geometry import VoxelsSumming, calculate_birds_eye_view_parameters
 
 class BevModel(nn.Module):
     def __init__(self, cfg: Configuration):
-        super(BevModel, self).__init__()
+        super().__init__()
 
         self.cfg = cfg
 
@@ -90,8 +90,8 @@ class BevModel(nn.Module):
             x_b = x_b[mask]
             geom_b = geom_b[mask]
 
-            ranks = (geom_b[:, 0] * (self.bev_dim[1] * self.bev_dim[2])
-                     + geom_b[:, 1] * self.bev_dim[2] + geom_b[:, 2])
+            ranks = ((geom_b[:, 0] * (self.bev_dim[1] * self.bev_dim[2])
+                     + geom_b[:, 1] * self.bev_dim[2]) + geom_b[:, 2])
             sorts = ranks.argsort()
             x_b, geom_b, ranks = x_b[sorts], geom_b[sorts], ranks[sorts]
 

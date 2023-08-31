@@ -6,7 +6,7 @@ from timm.models.layers import trunc_normal_
 
 class ControlPredict(nn.Module):
     def __init__(self, cfg: Configuration):
-        super(ControlPredict, self).__init__()
+        super().__init__()
         self.cfg = cfg
         self.pad_idx = self.cfg.token_nums - 1
 

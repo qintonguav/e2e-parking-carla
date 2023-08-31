@@ -6,7 +6,7 @@ from timm.models.layers import trunc_normal_
 
 class FeatureFusion(nn.Module):
     def __init__(self, cfg: Configuration):
-        super(FeatureFusion, self).__init__()
+        super().__init__()
         self.cfg = cfg
 
         tf_layer = nn.TransformerEncoderLayer(d_model=self.cfg.tf_en_dim, nhead=self.cfg.tf_en_heads)
