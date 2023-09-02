@@ -1,12 +1,31 @@
 import random
 import carla
 
-town04_scope = {
+town04_bound = {
     "x_min": 264.0,
     "x_max": 304.0,
     "y_min": -214.0,
     "y_max": -178.0,
 }
+
+task_idx = [
+    '2-1',   # 0
+    '2-3',
+    '2-5',
+    '2-7',
+    '2-9',
+    '2-11',
+    '2-13',
+    '2-15',
+    '3-1',
+    '3-3',
+    '3-5',
+    '3-7',
+    '3-9',
+    '3-11',
+    '3-13',
+    '3-15',  # 15
+]
 
 parking_vehicle_locations_Town04 = [
     # row 1
