@@ -217,9 +217,9 @@ class ParkingAgent:
         if not self.log_path.exists():
             self.log_path.mkdir()
 
-        self.BOS_token = self.cfg.token_num - 3
+        self.BOS_token = self.cfg.token_nums - 3
 
-        self.hist_frame_num = self.cfg.hist_frame_num
+        self.hist_frame_nums = self.cfg.hist_frame_nums
 
         self.net_eva = network_evaluator
         self.world = network_evaluator.world
@@ -395,7 +395,7 @@ class ParkingAgent:
                 self.net_eva.parking_inference_time.append(end_time - start_time)
 
                 self.save_prev_target(pred_segmentation)
-                control_signal = detokenize(pred_controls[0].tolist()[1:], self.cfg.token_num)
+                control_signal = detokenize(pred_controls[0].tolist()[1:], self.cfg.token_nums)
 
                 self.trans_control.throttle = control_signal[0]
                 self.trans_control.brake = control_signal[1]

@@ -29,7 +29,7 @@ class ControlPredict(nn.Module):
         trunc_normal_(self.pos_embed, std=.02)
 
     def create_mask(self, tgt):
-        tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt.shape[1])
+        tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt.shape[1]).to(self.cfg.device)
         tgt_padding_mask = (tgt == self.pad_idx)
         return tgt_mask, tgt_padding_mask
 

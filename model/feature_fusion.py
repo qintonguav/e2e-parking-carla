@@ -34,7 +34,7 @@ class FeatureFusion(nn.Module):
                 continue
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
-        trunc_normal_(self.pos_emb, std=.02)
+        trunc_normal_(self.pos_embed, std=.02)
 
     def forward(self, bev_feature, ego_motion):
         bev_feature = bev_feature.transpose(1, 2)

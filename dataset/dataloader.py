@@ -1,8 +1,10 @@
 import torch
 import numpy as np
 import random
-from torch.utils.data import DataLoader, Dataset
 import pytorch_lightning as pl
+
+from torch.utils.data import DataLoader
+
 from dataset.carla_dataset import CarlaDataset
 from tool.config import Configuration
 
@@ -28,13 +30,13 @@ class ParkingDataModule(pl.LightningDataModule):
         self.train_loader = DataLoader(dataset=train_set,
                                        batch_size=self.cfg.batch_size,
                                        shuffle=True,
-                                       num_workers=8,
+                                       num_workers=0,
                                        pin_memory=True,
                                        drop_last=True)
         self.val_loader = DataLoader(dataset=val_set,
                                      batch_size=self.cfg.batch_size,
-                                     shuffle=True,
-                                     num_workers=8,
+                                     shuffle=False,
+                                     num_workers=0,
                                      pin_memory=True,
                                      drop_last=True)
 

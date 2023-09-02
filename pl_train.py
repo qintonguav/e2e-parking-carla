@@ -1,12 +1,15 @@
-import argparse
 import os
 import sys
-from loguru import logger
+import argparse
 import yaml
-from tool.config import get_cfg
+
+from loguru import logger
 from pytorch_lightning import Trainer
 from trainer.pl_trainer import ParkingTrainingModule, setup_callbacks
 from pytorch_lightning.loggers import TensorBoardLogger
+
+from dataset.dataloader import ParkingDataModule
+from tool.config import get_cfg
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
@@ -27,18 +30,23 @@ def train():
     logger.remove()
     logger.add(cfg.log_dir + '/training_{time}.log', enqueue=True, backtrace=True, diagnose=True)
     logger.add(sys.stderr, enqueue=True)
+    logger.info("Config Yaml File: {}", args.config)
 
     parking_callbacks = setup_callbacks(cfg)
-    tensor_logger = TensorBoardLogger(save_dir=cfg.log_dir)
-    num_gpus = 8
+    tensor_logger = TensorBoardLogger(save_dir=cfg.log_dir, default_hp_metric=False)
+    num_gpus = 1
 
-    # set dataloader
-
-    parking_model = ParkingTrainingModule(cfg)
     parking_trainer = Trainer(callbacks=parking_callbacks,
                               logger=tensor_logger,
-                              gpus=num_gpus)
-    parking_trainer.fit(parking_model)
+                              accelerator='gpu',
+                              devices=num_gpus,
+                              max_epochs=cfg.epochs,
+                              log_every_n_steps=cfg.log_every_n_steps,
+                              check_val_every_n_epoch=cfg.check_val_every_n_epoch)
+
+    parking_model = ParkingTrainingModule(cfg)
+    parking_datamodule = ParkingDataModule(cfg)
+    parking_trainer.fit(parking_model, datamodule=parking_datamodule)
 
 
 if __name__ == '__main__':
