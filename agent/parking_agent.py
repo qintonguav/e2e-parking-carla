@@ -1,32 +1,25 @@
+import sys
+import carla
 import math
 import pathlib
-import sys
-
-import carla
-from PIL import Image
-from PIL import ImageDraw
-
-from data_generation.map_utils import encode_npy_to_pil
-from tools.geometry import update_intrinsics
-
-sys.path.append(r"../")
-
 import yaml
 import torch
 import numpy as np
 import logging
 import time
 import pygame
-
-from collections import OrderedDict
-from tools.config import get_cfg
-
-from models.e2e_parking_models import E2EParkingModel
-from data_generation.network_evaluator import NetworkEvaluator
-from data.carla_dataset import ProcessImage, convert_slot_coord, ProcessSemantic
-from tools.config import Configuration
-from data.carla_dataset import detokenize
 import matplotlib.pyplot as plt
+
+from PIL import Image
+from PIL import ImageDraw
+from collections import OrderedDict
+
+from tool.geometry import update_intrinsics
+from tool.config import Configuration, get_cfg
+from dataset.carla_dataset import ProcessImage, convert_slot_coord, ProcessSemantic
+from dataset.carla_dataset import detokenize
+from carla_data_generator.network_evaluator import NetworkEvaluator
+from model.parking_model import ParkingModel
 
 
 def show_control_info(window, control, steering_wheel_image, width, height, font):
@@ -262,7 +255,7 @@ class ParkingAgent:
 
     def load_model(self, parking_pth_path):
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        self.model = E2EParkingModel(self.cfg)
+        self.model = ParkingModel(self.cfg)
         ckpt = torch.load(parking_pth_path, map_location='cuda:0')
         state_dict = OrderedDict([(k.replace('model.', ''), v) for k, v in ckpt['state_dict'].items()])
         self.model.load_state_dict(state_dict)
@@ -392,7 +385,7 @@ class ParkingAgent:
                 pred_controls, pred_segmentation, _, target_bev = self.model.predict(data)
 
                 end_time = time.time()
-                self.net_eva.parking_inference_time.append(end_time - start_time)
+                self.net_eva.inference_time.append(end_time - start_time)
 
                 self.save_prev_target(pred_segmentation)
                 control_signal = detokenize(pred_controls[0].tolist()[1:], self.cfg.token_nums)
@@ -460,7 +453,7 @@ class ParkingAgent:
 
         data = {}
 
-        target_point = convert_slot_coord(vehicle_transform, self.net_eva.eval_parking_goal)
+        target_point = convert_slot_coord(vehicle_transform, self.net_eva.eva_parking_goal)
 
         front_final, self.rgb_front = self.image_process(target_point, cam_id='rgb_front',
                                                          image=data_frame['rgb_front'])
