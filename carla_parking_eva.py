@@ -3,14 +3,16 @@ import logging
 import carla
 import pygame
 
-from carla_data_generator.data_generator import DataGenerator
+from carla_data_generator.network_evaluator import NetworkEvaluator
 from carla_data_generator.keyboard_control import KeyboardControl
+from parking_agent import ParkingAgent
+from parking_agent import show_control_info
 
 
 def game_loop(args):
     pygame.init()
     pygame.font.init()
-    data_generator = None
+    network_evaluator = None
 
     try:
         client = carla.Client(args.host, args.port)
@@ -19,8 +21,12 @@ def game_loop(args):
         carla_world = client.load_world(args.map)
         carla_world.unload_map_layer(carla.MapLayer.ParkedVehicles)
 
-        data_generator = DataGenerator(carla_world, args)
-        controller = KeyboardControl(data_generator.world)
+        network_evaluator = NetworkEvaluator(carla_world, args)
+        parking_agent = ParkingAgent(network_evaluator, args)
+        controller = KeyboardControl(network_evaluator.world)
+
+        steer_wheel_img = pygame.image.load("./resource/steer_wheel.png")
+        font = pygame.font.Font(pygame.font.get_default_font(), 25)
 
         display = pygame.display.set_mode(
             (args.width, args.height),
@@ -28,21 +34,24 @@ def game_loop(args):
 
         clock = pygame.time.Clock()
         while True:
-            data_generator.world_tick()
+            network_evaluator.world_tick()
             clock.tick_busy_loop(60)
-            if controller.parse_events(client, data_generator.world, clock):
+            if controller.parse_events(client, network_evaluator.world, clock):
                 return
-            data_generator.tick(clock)
-            data_generator.render(display)
+            parking_agent.tick()
+            show_control_info(display, parking_agent.get_eva_control(), steer_wheel_img,
+                              args.width, args.height, font)
+            network_evaluator.tick(clock)
+            network_evaluator.render(display)
             pygame.display.flip()
 
     finally:
 
-        if data_generator:
+        if network_evaluator:
             client.stop_recorder()
 
-        if data_generator is not None:
-            data_generator.destroy()
+        if network_evaluator is not None:
+            network_evaluator.destroy()
 
         pygame.quit()
 
@@ -86,14 +95,28 @@ def main():
         type=float,
         help='Gamma correction of the camera (default: 0.0)')
     argparser.add_argument(
-        '--save_path',
-        default='/home/yunfan/data/e2e_parking/',
-        help='path to save sensor data (default: ./results/)')
+        '--model_path',
+        default='./ckpt/model.ckpt',
+        help='path to model.ckpt')
     argparser.add_argument(
-        '--task_num',
+        '--model_config_path',
+        default='./config/training.yaml',
+        help='path to model training.yaml')
+    argparser.add_argument(
+        '--eva_epochs',
+        default=4,
+        type=int,
+        help='number of eva epochs (default: 4')
+    argparser.add_argument(
+        '--eva_task_nums',
         default=16,
         type=int,
-        help='number of parking task (default: 5')
+        help='number of parking slot task (default: 16')
+    argparser.add_argument(
+        '--eva_parking_nums',
+        default=6,
+        type=int,
+        help='number of parking nums for every slot (default: 6')
     argparser.add_argument(
         '--map',
         default='Town04_Opt',
@@ -111,13 +134,18 @@ def main():
         help='shuffle weather between tasks (default: False)')
     argparser.add_argument(
         '--random_seed',
-        default=1,
+        default=11,
         help='random seed to initialize env; if sets to 0, use current timestamp as seed (default: 0)')
     argparser.add_argument(
         '--bev_render_device',
         default='cuda',
         help='device used for BEV Rendering (default: cpu)',
         choices=['cpu', 'cuda'])
+    argparser.add_argument(
+        '--show_eva_imgs',
+        default=False,
+        type=str2bool,
+        help='show eva figure in eva model (default: False)')
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]

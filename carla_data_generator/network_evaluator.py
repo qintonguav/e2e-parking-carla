@@ -27,11 +27,11 @@ class NetworkEvaluator:
         self._ego_transform_generator = parking_position.EgoPosTown04()
 
         now = datetime.now()
-        result_dir = '_'.join(map(lambda x: '%02d' % x, (now.month, now.day, now.hour, now.minute, now.second)))
+        result_dir = '_'.join(map(lambda x: '%02d' % x, (now.month, now.day, now.hour, now.minute, now.self._frames_per_second)))
         self._eva_result_path = pathlib.Path(args.save_path) / result_dir
         self._eva_result_path.mkdir(parents=True, exist_ok=False)
 
-        self._render_bev = args.render_bev
+        self._render_bev = args.show_eva_imgs
 
         self._eva_epochs = args.eva_epochs
         self._eva_task_nums = args.eva_task_nums
@@ -51,7 +51,7 @@ class NetworkEvaluator:
         self._goal_reach_orientation_diff = 10.0   # degree
 
         # 1s = 30HZ for our carla setting
-        second = 30
+        self._frames_per_second = 30
 
         # metric frames
         self._num_frames_in_goal = 0
@@ -59,11 +59,11 @@ class NetworkEvaluator:
         self._num_frames_nearby_no_goal = 0
         self._num_frames_outbound = 0
         self._num_frames_total = 0
-        self._num_frames_in_goal_needed = 2 * second         # 2s
-        self._num_frames_nearby_goal_needed = 2 * second     # 2s
-        self._num_frames_nearby_no_goal_needed = 2 * second  # 2s
-        self._num_frames_outside_needed = 20 * second        # 20s
-        self._num_frames_total_needed = 30 * second          # 30s
+        self._num_frames_in_goal_needed = 2 * self._frames_per_second         # 2s
+        self._num_frames_nearby_goal_needed = 2 * self._frames_per_second     # 2s
+        self._num_frames_nearby_no_goal_needed = 2 * self._frames_per_second  # 2s
+        self._num_frames_outside_needed = 20 * self._frames_per_second        # 20s
+        self._num_frames_total_needed = 30 * self._frames_per_second          # 30s
 
         # metric for 1 slot
         self._target_success_nums = 0
@@ -159,8 +159,6 @@ class NetworkEvaluator:
             self.save_epoch_avg_metric_csv()
             exit(0)
 
-        self._start_time = datetime.now()
-
         self.soft_destroy()
 
         self.clear_metric_rate()
@@ -180,6 +178,8 @@ class NetworkEvaluator:
         self._epoch_metric_info = {}
 
     def start_next_parking(self):
+        self._start_time = datetime.now()
+
         self._agent_need_init = True
 
         self._eva_parking_idx += 1
@@ -272,6 +272,9 @@ class NetworkEvaluator:
         self.clear_metric_frame()
         self._world.soft_destroy()
 
+    def destroy(self):
+        self._world.destroy()
+
     def eva_check_goal(self):
         # get ego current state
         player = self._world.player
@@ -323,6 +326,9 @@ class NetworkEvaluator:
         if self._num_frames_in_goal >= self._num_frames_in_goal_needed:
             if (self._parking_goal.x == closest_goal[0]) and (self._parking_goal.y == closest_goal[1]):
                 self._target_success_nums += 1
+                self._position_error.append(self._distance_diff_to_goal)
+                self._orientation_error.append(self._orientation_diff_to_goal)
+                self._parking_time.append((datetime.now() - self._start_time) / self._frames_per_second)
             else:
                 self._no_target_success_nums += 1
             return True
@@ -423,3 +429,25 @@ class NetworkEvaluator:
         y_out_bound = ((ego_loc.y < parking_position.town04_bound['y_min']) or
                        (ego_loc.y > parking_position.town04_bound['y_max']))
         return x_out_bound or y_out_bound
+
+    def world_tick(self):
+        self._world.world_tick()
+
+    def render(self, display):
+        self._world.render(display)
+
+    @property
+    def world(self):
+        return self._world
+
+    @property
+    def agent_need_init(self):
+        return self._agent_need_init
+
+    @agent_need_init.setter
+    def agent_need_init(self, need_init):
+        self._agent_need_init = need_init
+
+    @property
+    def inference_time(self):
+        return self._inference_time
