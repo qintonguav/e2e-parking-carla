@@ -9,7 +9,7 @@ class Configuration:
     log_dir = None
     checkpoint_dir = None
     log_every_n_steps = None
-    check_val_every_n_train = None
+    check_val_every_n_epoch = None
 
     epochs = None
     learning_rate = None

@@ -65,18 +65,18 @@ def scale_and_crop_image(image, scale=1.0, crop=256):
     return cropped_image
 
 
-def tokenize(throttle, brake, steer, reverse, token_num=200):
+def tokenize(throttle, brake, steer, reverse, token_nums=200):
     """
     Tokenize control signal
     :param throttle: [0,1]
     :param brake: [0,1]
     :param steer: [-1,1]
     :param reverse: {0,1}
-    :param token_num: size of token
-    :return: tokenized control range [0, token_num-4]
+    :param token_nums: size of token
+    :return: tokenized control range [0, token_nums-4]
     """
 
-    valid_token = token_num - 4
+    valid_token = token_nums - 4
     half_token = valid_token / 2
 
     if brake != 0.0:
@@ -88,15 +88,15 @@ def tokenize(throttle, brake, steer, reverse, token_num=200):
     return [throttle_brake_token, steer_token, reverse_token]
 
 
-def detokenize(token_list, token_num=200):
+def detokenize(token_list, token_nums=200):
     """
     Detokenize control signals
     :param token_list: [throttle_brake, steer, reverse]
-    :param token_num: size of token number
+    :param token_nums: size of token number
     :return: control signal values
     """
 
-    valid_token = token_num - 4
+    valid_token = token_nums - 4
     half_token = float(valid_token / 2)
 
     if token_list[0] > half_token:
@@ -276,20 +276,18 @@ class CarlaDataset(torch.utils.data.Dataset):
         train_data = os.path.join(self.root_dir, train_towns)
         val_data = os.path.join(self.root_dir, val_towns)
 
-        town_dir = train_data if self.is_train == 0 else val_data
+        town_dir = train_data if self.is_train == 1 else val_data
 
         # collect all parking data tasks
         root_dirs = os.listdir(town_dir)
         all_tasks = []
         for root_dir in root_dirs:
-            root_path = os.path.join(town_dir, root_dir)
-            for task_dir in os.listdir(root_path):
-                task_path = os.path.join(root_path, task_dir)
-                all_tasks.append(task_path)
+            task_path = os.path.join(town_dir, root_dir)
+            all_tasks.append(task_path)
 
         for task_path in all_tasks:
             total_frames = len(os.listdir(task_path + "/measurements/"))
-            for frame in range(self.cfg.hist_frame_num, total_frames - self.cfg.future_frame_num):
+            for frame in range(self.cfg.hist_frame_nums, total_frames - self.cfg.future_frame_nums):
                 # collect data at current frame
                 # image
                 filename = f"{str(frame).zfill(4)}.png"
@@ -324,11 +322,11 @@ class CarlaDataset(torch.utils.data.Dataset):
                 throttle_brakes = []
                 steers = []
                 reverse = []
-                for i in range(self.cfg.future_frame_num):
+                for i in range(self.cfg.future_frame_nums):
                     with open(task_path + f"/measurements/{str(frame + 1 + i).zfill(4)}.json", "r") as read_file:
                         data = json.load(read_file)
                     controls.append(
-                        tokenize(data['Throttle'], data["Brake"], data["Steer"], data["Reverse"], self.cfg.token_num))
+                        tokenize(data['Throttle'], data["Brake"], data["Steer"], data["Reverse"], self.cfg.token_nums))
                     add_raw_control(data, throttle_brakes, steers, reverse)
 
                 controls = [item for sublist in controls for item in sublist]
@@ -362,7 +360,7 @@ class CarlaDataset(torch.utils.data.Dataset):
         self.acc_y = np.array(self.acc_y).astype(np.float32)
         self.throttle_brake = np.array(self.throttle_brake).astype(np.float32)
         self.steer = np.array(self.steer).astype(np.float32)
-        self.reverse = np.array(self.reverse).astype(np.float32)
+        self.reverse = np.array(self.reverse).astype(np.int64)
         self.target_point = np.array(self.target_point).astype(np.float32)
         self.control = np.array(self.control).astype(np.int64)
 
@@ -398,7 +396,7 @@ class CarlaDataset(torch.utils.data.Dataset):
         # segmentation
         segmentation = self.semantic_process(self.topdown[index], scale=0.5, crop=200,
                                              target_slot=self.target_point[index])
-        data['segmentation'] = segmentation
+        data['segmentation'] = torch.from_numpy(segmentation).long().unsqueeze(0)
 
         # target_point
         data['target_point'] = torch.from_numpy(self.target_point[index])
@@ -433,7 +431,7 @@ class ProcessSemantic:
         """
 
         # read image from disk
-        if not isinstance(image, Image):
+        if not isinstance(image, carla.Image):
             image = Image.open(image)
         image = image.convert('L')
 
@@ -453,7 +451,7 @@ class ProcessSemantic:
         # LSS method vehicle toward positive x-axis on image
         semantics = semantics[::-1]
 
-        return semantics
+        return semantics.copy()
 
     def draw_target_slot(self, image, target_slot):
 
@@ -471,8 +469,9 @@ class ProcessSemantic:
                 slot_points.append(np.array([x, y, 1, 1], dtype=int))
 
         # rotate parking slots points
+
         slot_trans = np.array(
-            carla.Transform(carla.Location(), carla.Rotation(yaw=float(-target_slot[2])))).get_matrix()
+            carla.Transform(carla.Location(), carla.Rotation(yaw=float(-target_slot[2]))).get_matrix())
         slot_points = np.vstack(slot_points).T
         slot_points_ego = (slot_trans @ slot_points)[0:2].astype(int)
 

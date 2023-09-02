@@ -18,11 +18,11 @@ class BevModel(nn.Module):
         self.bev_start_pos = nn.Parameter(bev_start_pos, requires_grad=False)
         self.bev_dim = nn.Parameter(bev_dim, requires_grad=False)
 
+        self.down_sample = self.cfg.bev_down_sample
+
         self.frustum = self.create_frustum()
         self.depth_channel, _, _, _ = self.frustum.shape
         self.cam_encoder = CamEncoder(self.cfg, self.depth_channel)
-
-        self.down_sample = self.cfg.bev_down_sample
 
     def create_frustum(self):
         h, w = self.cfg.final_dim
@@ -42,14 +42,14 @@ class BevModel(nn.Module):
         return nn.Parameter(frustum, requires_grad=False)
 
     def get_geometry(self, intrinsics, extrinsics):
-        extrinsics = torch.inverse(extrinsics).cuda()
+        extrinsics = torch.inverse(extrinsics).to(self.cfg.device)
         rotation, translation = extrinsics[..., :3, :3], extrinsics[..., :3, 3]
         b, n, _ = translation.shape
 
         points = self.frustum.unsqueeze(0).unsqueeze(0).unsqueeze(-1)
         points = torch.cat((points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
                             points[:, :, :, :, :, 2:3]), 5)
-        combine_transform = rotation.matmul(torch.inverse(intrinsics)).cuda()
+        combine_transform = rotation.matmul(torch.inverse(intrinsics)).to(self.cfg.device)
         points = combine_transform.view(b, n, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
         points += translation.view(b, n, 1, 1, 1, 3)
 
