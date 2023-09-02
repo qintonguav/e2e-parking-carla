@@ -146,6 +146,10 @@ def main():
         default=False,
         type=str2bool,
         help='show eva figure in eva model (default: False)')
+    argparser.add_argument(
+        '--eva_result_path',
+        default='./eva_result',
+        help='path to save eva csv file')
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]

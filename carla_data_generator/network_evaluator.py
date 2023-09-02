@@ -27,8 +27,9 @@ class NetworkEvaluator:
         self._ego_transform_generator = parking_position.EgoPosTown04()
 
         now = datetime.now()
-        result_dir = '_'.join(map(lambda x: '%02d' % x, (now.month, now.day, now.hour, now.minute, now.self._frames_per_second)))
-        self._eva_result_path = pathlib.Path(args.save_path) / result_dir
+        result_dir = '_'.join(map(lambda x: '%02d' % x,
+                                  (now.year, now.month, now.day, now.hour, now.minute, now.second)))
+        self._eva_result_path = pathlib.Path(args.eva_result_path) / result_dir
         self._eva_result_path.mkdir(parents=True, exist_ok=False)
 
         self._render_bev = args.show_eva_imgs
@@ -167,9 +168,11 @@ class NetworkEvaluator:
 
         self._parking_goal_index = 16
         self._parking_goal = parking_position.parking_vehicle_locations_Town04[self._parking_goal_index]
-        self._ego_transform = self._ego_transform_generator.update_eva_goal_y(self._parking_goal.y,
-                                                                              self._eva_parking_nums,
-                                                                              self._eva_parking_idx)
+        self._ego_transform_generator.update_eva_goal_y(self._parking_goal.y,
+                                                        self._eva_parking_nums,
+                                                        self._eva_parking_idx)
+        self._ego_transform = self._ego_transform_generator.get_eva_ego_transform(self._eva_parking_nums,
+                                                                                  self._eva_parking_idx)
         self._eva_parking_goal = [self._parking_goal.x, self._parking_goal.y, 180]
         self._world.player.set_transform(self._ego_transform)
         self._world.restart(self._seed, self._parking_goal_index, self._ego_transform)
@@ -190,9 +193,8 @@ class NetworkEvaluator:
 
         self.clear_metric_frame()
 
-        self._ego_transform = self._ego_transform_generator.update_eva_goal_y(self._parking_goal.y,
-                                                                              self._eva_parking_nums,
-                                                                              self._eva_parking_idx)
+        self._ego_transform = self._ego_transform_generator.get_eva_ego_transform(self._eva_parking_nums,
+                                                                                  self._eva_parking_idx)
         self._world.player.set_transform(self._ego_transform)
         self._world.player.apply_control(carla.VehicleControl())
 
@@ -451,3 +453,7 @@ class NetworkEvaluator:
     @property
     def inference_time(self):
         return self._inference_time
+
+    @property
+    def eva_parking_goal(self):
+        return self._eva_parking_goal
