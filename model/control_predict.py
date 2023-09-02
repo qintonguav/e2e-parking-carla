@@ -14,16 +14,18 @@ class ControlPredict(nn.Module):
         self.pos_drop = nn.Dropout(self.cfg.tf_de_dropout)
         self.pos_embed = nn.Parameter(torch.randn(1, self.cfg.tf_de_tgt_dim - 1, self.cfg.tf_de_dim) * .02)
 
-        self.tf_layer = nn.TransformerDecoderLayer(d_model=self.cfg.tf_de_dim, nhead=self.cfg.tf_de_heads)
-        self.tf_decoder = nn.TransformerDecoder(self.tf_layer, num_layers=self.cfg.tf_de_layers)
+        tf_layer = nn.TransformerDecoderLayer(d_model=self.cfg.tf_de_dim, nhead=self.cfg.tf_de_heads)
+        self.tf_decoder = nn.TransformerDecoder(tf_layer, num_layers=self.cfg.tf_de_layers)
         self.output = nn.Linear(self.cfg.tf_de_dim, self.cfg.token_nums)
 
-    def init_weight(self):
+        self.init_weights()
+
+    def init_weights(self):
         for name, p in self.named_parameters():
             if 'pos_embed' in name:
                 continue
             if p.dim() > 1:
-                nn.init.xavier_uniform(p)
+                nn.init.xavier_uniform_(p)
         trunc_normal_(self.pos_embed, std=.02)
 
     def create_mask(self, tgt):
@@ -53,8 +55,8 @@ class ControlPredict(nn.Module):
         return pred_controls
 
     def predict(self, encoder_out, tgt):
-        length = tgt.shape[1]
-        padding = torch.ones(tgt.shape[0], self.cfg.tf_de_tgt_dim - length - 1).fill_(self.pad_idx).long().to('cuda')
+        length = tgt.size(1)
+        padding = torch.ones(tgt.size(0), self.cfg.tf_de_tgt_dim - length - 1).fill_(self.pad_idx).long().to('cuda')
         tgt = torch.cat([tgt, padding], dim=1)
 
         tgt_mask, tgt_padding_mask = self.create_mask(tgt)
