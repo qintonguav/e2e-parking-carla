@@ -1,8 +1,11 @@
 import torch
 from torch import nn
 from tool.config import Configuration
-from model.bev_model import BevModel, BevEncoder, FeatureFusion, ControlPredict, SegmentationHead
-from tool.geometry import add_target_bev
+from model.bev_model import BevModel
+from model.bev_encoder import BevEncoder
+from model.feature_fusion import FeatureFusion
+from model.control_predict import ControlPredict
+from model.segmentation_head import SegmentationHead
 
 
 class ParkingModel(nn.Module):
@@ -35,11 +38,11 @@ class ParkingModel(nn.Module):
         for batch in range(b):
             bev_target_batch = bev_target[batch][0]
             target_point_batch = target_point[batch]
-            bev_target_batch[target_point_batch[0] - 4:target_point[0] + 4,
-                             target_point_batch[1] - 4:target_point[1] + 4] = 1.0
+            bev_target_batch[target_point_batch[0] - 4:target_point_batch[0] + 4,
+                             target_point_batch[1] - 4:target_point_batch[1] + 4] = 1.0
 
         bev_feature = torch.cat([bev_feature, bev_target], dim=1)
-        return bev_feature
+        return bev_feature, bev_target
 
     def encoder(self, data):
         images = data['image'].to(self.cfg.device, non_blocking=True)
@@ -50,7 +53,7 @@ class ParkingModel(nn.Module):
 
         bev_feature, pred_depth = self.bev_model(images, intrinsics, extrinsics)
 
-        bev_feature, bev_target = add_target_bev(bev_feature, target_point)
+        bev_feature, bev_target = self.add_target_bev(bev_feature, target_point)
 
         bev_down_sample = self.bev_encoder(bev_feature)
 
@@ -62,12 +65,12 @@ class ParkingModel(nn.Module):
 
     def forward(self, data):
         fuse_feature, pred_segmentation, pred_depth, _ = self.encoder(data)
-        pred_control = self.control_predict(fuse_feature, data['gt_control'].cuda())
+        pred_control = self.control_predict(fuse_feature, data['gt_control'].to(self.cfg.device))
         return pred_control, pred_segmentation, pred_depth
 
     def predict(self, data):
         fuse_feature, pred_segmentation, pred_depth, bev_target = self.encoder(data)
-        pred_multi_controls = data['gt_control'].cuda()
+        pred_multi_controls = data['gt_control'].to(self.cfg.device)
         for i in range(3):
             pred_control = self.control_predict(fuse_feature, pred_multi_controls)
             pred_multi_controls = torch.cat([pred_multi_controls, pred_control], dim=1)

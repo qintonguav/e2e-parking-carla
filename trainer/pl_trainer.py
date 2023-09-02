@@ -1,28 +1,33 @@
 import torch
-import torch.nn as nn
 import pytorch_lightning as pl
+
+from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar, LearningRateMonitor, ModelSummary
+
 from tool.config import Configuration
 from loss.control_loss import ControlLoss, ControlValLoss
 from loss.depth_loss import DepthLoss
 from loss.seg_loss import SegmentationLoss
-from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar, LearningRateMonitor
 from model.parking_model import ParkingModel
+
 
 def setup_callbacks(cfg):
     callbacks = []
 
-    ckpt_callback = ModelCheckpoint(filepath=cfg.ckeckpoint_dir,
+    ckpt_callback = ModelCheckpoint(dirpath=cfg.checkpoint_dir,
                                     monitor='val_loss',
                                     save_top_k=3,
                                     mode='min',
-                                    filename='E2E-APA-{epoch:02d}-{val_loss:.2f}',
+                                    filename='E2EParking-{epoch:02d}-{val_loss:.2f}',
                                     save_last=True)
     callbacks.append(ckpt_callback)
 
     progress_bar = TQDMProgressBar()
     callbacks.append(progress_bar)
 
-    lr_monitor = LearningRateMonitor()
+    model_summary = ModelSummary(max_depth=2)
+    callbacks.append(model_summary)
+
+    lr_monitor = LearningRateMonitor(logging_interval='epoch')
     callbacks.append(lr_monitor)
     return callbacks
 
@@ -70,6 +75,7 @@ class ParkingTrainingModule(pl.LightningModule):
             "train_loss": train_loss
         })
 
+        self.log_dict(loss_dict)
         self.log_segmentation(pred_segmentation, batch, 'segmentation')
         self.log_depth(pred_depth, batch, 'depth')
 
@@ -100,13 +106,17 @@ class ParkingTrainingModule(pl.LightningModule):
             "val_loss": val_loss
         })
 
+        self.log_dict(val_loss_dict)
         self.log_segmentation(pred_segmentation, batch, 'segmentation_val')
         self.log_depth(pred_depth, batch, 'depth_val')
 
         return val_loss
 
     def configure_optimizers(self):
-        pass
+        optimizer = torch.optim.Adam(self.parameters(),
+                                     lr=self.cfg.learning_rate,
+                                     weight_decay=self.cfg.weight_decay)
+        return optimizer
 
     def log_segmentation(self, pred_segmentation, gt_segmentation, name):
         pass

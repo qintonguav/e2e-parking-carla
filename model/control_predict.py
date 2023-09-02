@@ -6,7 +6,7 @@ from timm.models.layers import trunc_normal_
 
 class ControlPredict(nn.Module):
     def __init__(self, cfg: Configuration):
-        super(ControlPredict, self).__init__()
+        super().__init__()
         self.cfg = cfg
         self.pad_idx = self.cfg.token_nums - 1
 
@@ -29,7 +29,7 @@ class ControlPredict(nn.Module):
         trunc_normal_(self.pos_embed, std=.02)
 
     def create_mask(self, tgt):
-        tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt.shape[1])
+        tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt.shape[1]).to(self.cfg.device)
         tgt_padding_mask = (tgt == self.pad_idx)
         return tgt_mask, tgt_padding_mask
 

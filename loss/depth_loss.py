@@ -7,7 +7,7 @@ from torch.cuda.amp.autocast_mode import autocast
 
 class DepthLoss(nn.Module):
     def __init__(self, cfg: Configuration):
-        super(DepthLoss, self).__init__()
+        super().__init__()
         self.cfg = cfg
 
         self.d_bound = self.cfg.d_bound

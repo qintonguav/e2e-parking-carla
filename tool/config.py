@@ -1,13 +1,15 @@
+import torch
 from datetime import datetime
 import os
 
 
 class Configuration:
+    device = ('cuda' if torch.cuda.is_available() else 'cpu')
     data_dir = None
     log_dir = None
     checkpoint_dir = None
     log_every_n_steps = None
-    check_val_every_n_train = None
+    check_val_every_n_epoch = None
 
     epochs = None
     learning_rate = None
@@ -63,7 +65,7 @@ def get_cfg(cfg_yaml: dict):
     cfg.log_dir = os.path.join(config['log_dir'], exp_name)
     cfg.checkpoint_dir = os.path.join(config['checkpoint_dir'], exp_name)
     cfg.log_every_n_steps = config['log_every_n_steps']
-    cfg.check_val_every_n_train = config['check_val_every_n_train']
+    cfg.check_val_every_n_epoch = config['check_val_every_n_epoch']
 
     cfg.epochs = config['epochs']
     cfg.learning_rate = config['learning_rate']

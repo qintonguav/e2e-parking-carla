@@ -6,7 +6,7 @@ from timm.models.layers import trunc_normal_
 
 class FeatureFusion(nn.Module):
     def __init__(self, cfg: Configuration):
-        super(FeatureFusion, self).__init__()
+        super().__init__()
         self.cfg = cfg
 
         tf_layer = nn.TransformerEncoderLayer(d_model=self.cfg.tf_en_dim, nhead=self.cfg.tf_en_heads)
@@ -34,7 +34,7 @@ class FeatureFusion(nn.Module):
                 continue
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
-        trunc_normal_(self.pos_emb, std=.02)
+        trunc_normal_(self.pos_embed, std=.02)
 
     def forward(self, bev_feature, ego_motion):
         bev_feature = bev_feature.transpose(1, 2)
