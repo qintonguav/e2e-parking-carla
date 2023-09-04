@@ -10,7 +10,7 @@ from model.segmentation_head import SegmentationHead
 
 class ParkingModel(nn.Module):
     def __init__(self, cfg: Configuration):
-        super(ParkingModel, self).__init__()
+        super().__init__()
 
         self.cfg = cfg
 
@@ -65,13 +65,13 @@ class ParkingModel(nn.Module):
 
     def forward(self, data):
         fuse_feature, pred_segmentation, pred_depth, _ = self.encoder(data)
-        pred_control = self.control_predict(fuse_feature, data['gt_control'].to(self.cfg.device))
+        pred_control = self.control_predict(fuse_feature, data['gt_control'].cuda())
         return pred_control, pred_segmentation, pred_depth
 
     def predict(self, data):
         fuse_feature, pred_segmentation, pred_depth, bev_target = self.encoder(data)
-        pred_multi_controls = data['gt_control'].to(self.cfg.device)
+        pred_multi_controls = data['gt_control'].cuda()
         for i in range(3):
-            pred_control = self.control_predict(fuse_feature, pred_multi_controls)
+            pred_control = self.control_predict.predict(fuse_feature, pred_multi_controls)
             pred_multi_controls = torch.cat([pred_multi_controls, pred_control], dim=1)
         return pred_multi_controls, pred_segmentation, pred_depth, bev_target
