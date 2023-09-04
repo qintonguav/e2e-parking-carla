@@ -282,8 +282,10 @@ class CarlaDataset(torch.utils.data.Dataset):
         root_dirs = os.listdir(town_dir)
         all_tasks = []
         for root_dir in root_dirs:
-            task_path = os.path.join(town_dir, root_dir)
-            all_tasks.append(task_path)
+            root_path = os.path.join(town_dir, root_dir)
+            for task_dir in os.listdir(root_path):
+                task_path = os.path.join(root_path, task_dir)
+                all_tasks.append(task_path)
 
         for task_path in all_tasks:
             total_frames = len(os.listdir(task_path + "/measurements/"))
