@@ -116,7 +116,8 @@ class ParkingTrainingModule(pl.LightningModule):
         optimizer = torch.optim.Adam(self.parameters(),
                                      lr=self.cfg.learning_rate,
                                      weight_decay=self.cfg.weight_decay)
-        return optimizer
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=self.cfg.epochs)
+        return { "optimizer": optimizer, "scheduler": scheduler }
 
     def log_segmentation(self, pred_segmentation, gt_segmentation, name):
         pass
