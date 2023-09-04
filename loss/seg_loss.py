@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from tool.config import Configuration
 import torch.nn.functional as F
 
 

@@ -4,7 +4,7 @@ import os
 
 
 class Configuration:
-    device = ('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data_dir = None
     log_dir = None
     checkpoint_dir = None

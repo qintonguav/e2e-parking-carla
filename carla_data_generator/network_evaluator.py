@@ -3,9 +3,10 @@ import random
 import logging
 import sys
 import pathlib
-
 import carla
 import numpy as np
+import pandas as pd
+
 from datetime import datetime
 
 from carla_data_generator import parking_position
@@ -63,7 +64,7 @@ class NetworkEvaluator:
         self._num_frames_in_goal_needed = 2 * self._frames_per_second         # 2s
         self._num_frames_nearby_goal_needed = 2 * self._frames_per_second     # 2s
         self._num_frames_nearby_no_goal_needed = 2 * self._frames_per_second  # 2s
-        self._num_frames_outside_needed = 20 * self._frames_per_second        # 20s
+        self._num_frames_outbound_needed = 20 * self._frames_per_second       # 20s
         self._num_frames_total_needed = 30 * self._frames_per_second          # 30s
 
         # metric for 1 slot
@@ -76,8 +77,8 @@ class NetworkEvaluator:
         self._timeout_nums = 0
         self._position_error = []
         self._orientation_error = []
-        self._inference_time = []
         self._parking_time = []
+        self._inference_time = []
 
         # metric rate for 16 slot
         self._target_success_rate = []
@@ -89,11 +90,10 @@ class NetworkEvaluator:
         self._timeout_rate = []
         self._average_position_error = []
         self._average_orientation_error = []
-        self._average_inference_time = []
         self._average_parking_time = []
+        self._average_inference_time = []
 
         self._epoch_metric_info = {}
-        self._epoch_avg_metric_info = {}
 
         # In paper: NTR = NTSR + NTFR, TR = TR + OR
         self._metric_names = {
@@ -106,8 +106,8 @@ class NetworkEvaluator:
             "timeout_rate": "TR",
             "average_position_error": "APE",
             "average_orientation_error": "AOE",
-            "average_inference_time": "AIT",
             "average_parking_time": "APT",
+            "average_inference_time": "AIT",
         }
 
         self._ego_transform = None
@@ -116,13 +116,22 @@ class NetworkEvaluator:
         self._start_time = None
 
         self.init()
-        self.start_eva_epoch(self._eva_epoch_idx)
+        self.start_eva_epoch()
 
     def init(self):
+        logging.info("***************** Start init eva environment *****************")
+
         self._ego_transform = self._ego_transform_generator.get_init_ego_transform()
         self._world.init_ego_vehicle(self._ego_transform)
+        logging.info("Init ego vehicle success!")
+
         self._world.init_sensors()
+        logging.info("Init sensors success!")
+
         self._world.next_weather()
+        logging.info("Init weather success!")
+
+        logging.info("*****************   End init eva environment *****************")
 
     def tick(self, clock):
         # update diff to world
@@ -137,32 +146,45 @@ class NetworkEvaluator:
         is_collision = self._world.tick(clock, self._parking_goal_index)
         if is_collision:
             self._collision_nums += 1
+            logging.info("parking collision for task %s-%d, collision_num: %d",
+                         parking_position.slot_id[self._eva_task_idx],
+                         self._eva_parking_idx + 1, self._collision_nums)
             self.start_next_parking()
             return
 
+        if self._render_bev:
+            pass
+
         # detect timeout
-        if self._num_frames_total >= self._num_frames_total_needed:
-            self._num_frames_total += 1
+        if self._num_frames_total > self._num_frames_total_needed:
+            self._timeout_nums += 1
+            logging.info("parking timeout for task %s-%d, timeout_num: %d",
+                         parking_position.slot_id[self._eva_task_idx],
+                         self._eva_parking_idx + 1, self._timeout_nums)
             self.start_next_parking()
             return
 
         # detect out of bound
-        ego_loc = self._world.player.get_location()
+        ego_loc = self._world.ego_transform.location
         if self.is_out_of_bound(ego_loc):
+            self._num_frames_outbound += 1
+
+        if self._num_frames_outbound > self._num_frames_outbound_needed:
             self._outbound_nums += 1
+            logging.info("parking outbound for task %s-%d, outbound_num: %d",
+                         parking_position.slot_id[self._eva_task_idx],
+                         self._eva_parking_idx + 1, self._outbound_nums)
             self.start_next_parking()
             return
 
         self.eva_check_goal()
 
-    def start_eva_epoch(self, eva_epoch_idx):
-        if eva_epoch_idx >= self._eva_parking_nums:
-            self.save_epoch_avg_metric_csv()
-            exit(0)
+    def start_eva_epoch(self):
+        logging.info("***************** Start eva epoch %d *****************", self._eva_epoch_idx + 1)
+
+        self._start_time = datetime.now()
 
         self.soft_destroy()
-
-        self.clear_metric_rate()
 
         self._seed = self._init_seed
 
@@ -173,20 +195,23 @@ class NetworkEvaluator:
                                                         self._eva_parking_idx)
         self._ego_transform = self._ego_transform_generator.get_eva_ego_transform(self._eva_parking_nums,
                                                                                   self._eva_parking_idx)
-        self._eva_parking_goal = [self._parking_goal.x, self._parking_goal.y, 180]
         self._world.player.set_transform(self._ego_transform)
-        self._world.restart(self._seed, self._parking_goal_index, self._ego_transform)
+        self._world.init_static_npc(self._seed, self._parking_goal_index)
+        self._eva_parking_goal = [self._parking_goal.x, self._parking_goal.y, 180]
 
         self._eva_task_idx = 0
+        self.clear_metric_rate()
         self._epoch_metric_info = {}
+        logging.info("***************** Start eva task %s-%d *****************",
+                     parking_position.slot_id[self._eva_task_idx], self._eva_parking_idx + 1)
 
     def start_next_parking(self):
-        self._start_time = datetime.now()
-
         self._agent_need_init = True
 
         self._eva_parking_idx += 1
         if self.is_complete_slot(self._eva_parking_idx):
+            logging.info("***************** End eva task %s *****************",
+                         parking_position.slot_id[self._eva_task_idx])
             self.save_slot_metric()
             self.start_next_slot()
             return
@@ -199,21 +224,24 @@ class NetworkEvaluator:
         self._world.player.apply_control(carla.VehicleControl())
 
     def is_complete_slot(self, eva_parking_idx):
-        if eva_parking_idx >= self._eva_parking_nums:
-            # log
-            return True
-        return False
+        return eva_parking_idx >= self._eva_parking_nums
 
     def start_next_slot(self):
         self._eva_task_idx += 1
         if self.is_complete_epoch(self._eva_task_idx):
-            # log
+            logging.info("***************** End eva epoch %d *****************", self._eva_epoch_idx + 1)
             self.save_epoch_metric_csv()
             self._eva_epoch_idx += 1
-            self.start_eva_epoch(self._eva_epoch_idx)
+            if self._eva_epoch_idx >= self._eva_parking_nums:
+                logging.info("***************** Complete all %d epoch, Thanks! *****************",
+                             self._eva_epochs)
+                self.save_epoch_metric_acg_std_csv()
+                exit(0)
+            else:
+                self.start_eva_epoch()
             return
 
-        if self._parking_goal_index < 48:
+        if self._eva_task_idx < 16:
             self._parking_goal_index += 2
         else:
             self._parking_goal_index = 16
@@ -221,20 +249,22 @@ class NetworkEvaluator:
         self.soft_destroy()
 
         self._parking_goal = parking_position.parking_vehicle_locations_Town04[self._parking_goal_index]
-        self._ego_transform = self._ego_transform_generator.update_eva_goal_y(self._parking_goal.y,
-                                                                              self._eva_parking_nums,
-                                                                              self._eva_parking_idx)
+        self._ego_transform_generator.update_eva_goal_y(self._parking_goal.y,
+                                                        self._eva_parking_nums,
+                                                        self._eva_parking_idx)
+        self._ego_transform = self._ego_transform_generator.get_eva_ego_transform(self._eva_parking_nums,
+                                                                                  self._eva_parking_idx)
         self._world.player.set_transform(self._ego_transform)
 
         self._seed += 1
         self._eva_parking_goal = [self._parking_goal.x, self._parking_goal.y, 180]
         self._world.restart(self._seed, self._parking_goal_index, self._ego_transform)
 
+        logging.info("***************** Start eva task %s *****************",
+                     parking_position.slot_id[self._eva_task_idx])
+
     def is_complete_epoch(self, eva_task_idx):
-        if eva_task_idx >= self._eva_task_nums:
-            # log
-            return True
-        return False
+        return eva_task_idx >= self._eva_task_nums
 
     def clear_metric_num(self):
         self._target_success_nums = 0
@@ -280,7 +310,8 @@ class NetworkEvaluator:
     def eva_check_goal(self):
         # get ego current state
         player = self._world.player
-        t = player.get_transform()
+        t = player.get_transform().location
+        r = player.get_transform().rotation
         v = player.get_velocity()
         c = player.get_control()
         speed = (3.6 * math.sqrt(v.x ** 2 + v.y ** 2 + v.z ** 2))
@@ -290,7 +321,7 @@ class NetworkEvaluator:
         self._x_diff_to_goal = sys.float_info.max
         self._y_diff_to_goal = sys.float_info.max
         self._distance_diff_to_goal = sys.float_info.max
-        self._orientation_diff_to_goal = min(t.yaw, abs(180 - t.yaw))
+        self._orientation_diff_to_goal = min(r.yaw, 180 - abs(r.yaw))
         for parking_goal in self._world.all_parking_goals:
             if t.distance(parking_goal) < self._distance_diff_to_goal:
                 self._distance_diff_to_goal = t.distance(parking_goal)
@@ -325,14 +356,20 @@ class NetworkEvaluator:
         if x_in_slot and y_in_slot and r_in_slot:
             self._num_frames_in_goal += 1
 
-        if self._num_frames_in_goal >= self._num_frames_in_goal_needed:
-            if (self._parking_goal.x == closest_goal[0]) and (self._parking_goal.y == closest_goal[1]):
+        if self._num_frames_in_goal > self._num_frames_in_goal_needed:
+            if (self._eva_parking_goal[0] == closest_goal[0]) and (self._eva_parking_goal[1] == closest_goal[1]):
                 self._target_success_nums += 1
                 self._position_error.append(self._distance_diff_to_goal)
                 self._orientation_error.append(self._orientation_diff_to_goal)
-                self._parking_time.append((datetime.now() - self._start_time) / self._frames_per_second)
+                self._parking_time.append(self._num_frames_total / self._frames_per_second)
+                logging.info("parking target success for task %s-%d, target_success_nums: %d",
+                             parking_position.slot_id[self._eva_task_idx],
+                             self._eva_parking_idx + 1, self._target_success_nums)
             else:
                 self._no_target_success_nums += 1
+                logging.info("parking no target success for task %s-%d, no_target_success_nums: %d",
+                             parking_position.slot_id[self._eva_task_idx],
+                             self._eva_parking_idx + 1, self._no_target_success_nums)
             return True
 
         return False
@@ -349,35 +386,41 @@ class NetworkEvaluator:
 
         dist_in_rough_slot = x_in_rough_slot and y_in_rough_slot
         if dist_in_rough_slot or r_in_rough_slot:
-            if (self._parking_goal.x == closest_goal[0]) and (self._parking_goal.y == closest_goal[1]):
+            if (self._eva_parking_goal[0] == closest_goal[0]) and (self._eva_parking_goal[1] == closest_goal[1]):
                 self._num_frames_nearby_goal += 1
             else:
                 self._num_frames_nearby_no_goal += 1
 
-        if self._num_frames_nearby_goal >= self._num_frames_nearby_goal_needed:
+        if self._num_frames_nearby_goal > self._num_frames_nearby_goal_needed:
             self._target_fail_nums += 1
+            logging.info("parking target fail for task %s-%d, target_fail_nums: %d",
+                         parking_position.slot_id[self._eva_task_idx],
+                         self._eva_parking_idx + 1, self._target_fail_nums)
             return True
 
-        if self._num_frames_nearby_no_goal >= self._num_frames_nearby_no_goal_needed:
+        if self._num_frames_nearby_no_goal > self._num_frames_nearby_no_goal_needed:
             self._no_target_fail_nums += 1
+            logging.info("parking no target fail for task %s-%d, no_target_fail_nums: %d",
+                         parking_position.slot_id[self._eva_task_idx],
+                         self._eva_parking_idx + 1, self._no_target_fail_nums)
             return True
 
         return False
 
     def save_slot_metric(self):
-        TSR = (self._target_success_nums / self._eva_parking_nums) * 100.0
-        TFR = (self._target_fail_nums / self._eva_parking_nums) * 100.0
-        NTSR = (self._no_target_success_nums / self._eva_parking_nums) * 100.0
-        NTFR = (self._no_target_fail_nums / self._eva_parking_nums) * 100.0
-        CR = (self._collision_nums / self._eva_parking_nums) * 100.0
-        OR = (self._outbound_nums / self._eva_parking_nums) * 100.0
-        TR = (self._timeout_nums / self._eva_parking_nums) * 100.0
+        TSR = (self._target_success_nums / float(self._eva_parking_nums)) * 100.0
+        TFR = (self._target_fail_nums / float(self._eva_parking_nums)) * 100.0
+        NTSR = (self._no_target_success_nums / float(self._eva_parking_nums)) * 100.0
+        NTFR = (self._no_target_fail_nums / float(self._eva_parking_nums)) * 100.0
+        CR = (self._collision_nums / float(self._eva_parking_nums)) * 100.0
+        OR = (self._outbound_nums / float(self._eva_parking_nums)) * 100.0
+        TR = (self._timeout_nums / float(self._eva_parking_nums)) * 100.0
         APE = np.mean(self._position_error)
         AOE = np.mean(self._orientation_error)
-        AIT = np.mean(self._inference_time)
         APT = np.mean(self._parking_time)
+        AIT = np.mean(self._inference_time)
 
-        slot_id = parking_position.task_idx[self._eva_task_idx]
+        slot_id = parking_position.slot_id[self._eva_task_idx]
         self._epoch_metric_info[slot_id] = {
             'target_success_rate': TSR,
             'target_fail_rate': TFR,
@@ -388,8 +431,8 @@ class NetworkEvaluator:
             'timeout_rate': TR,
             'average_position_error': APE,
             'average_orientation_error': AOE,
-            'average_inference_time': AIT,
             'average_parking_time': APT,
+            'average_inference_time': AIT,
         }
 
         self._target_success_rate.append(TSR)
@@ -401,8 +444,8 @@ class NetworkEvaluator:
         self._timeout_rate.append(TR)
         self._average_position_error.append(APE)
         self._average_orientation_error.append(AOE)
-        self._average_inference_time.append(AIT)
         self._average_parking_time.append(APT)
+        self._average_inference_time.append(AIT)
 
     def save_epoch_metric_csv(self):
         self._epoch_metric_info['Avg'] = {
@@ -422,7 +465,7 @@ class NetworkEvaluator:
     def save_csv(self):
         pass
 
-    def save_epoch_avg_metric_csv(self):
+    def save_epoch_metric_acg_std_csv(self):
         pass
 
     def is_out_of_bound(self, ego_loc):
@@ -457,3 +500,7 @@ class NetworkEvaluator:
     @property
     def eva_parking_goal(self):
         return self._eva_parking_goal
+
+    @property
+    def ego_transform(self):
+        return self._ego_transform

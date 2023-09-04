@@ -8,7 +8,7 @@ town04_bound = {
     "y_max": -178.0,
 }
 
-task_idx = [
+slot_id = [
     '2-1',   # 0
     '2-3',
     '2-5',
@@ -145,6 +145,7 @@ class EgoPosTown04:
         return self.get_cur_ego_transform()
 
     def get_eva_ego_transform(self, every_parking_num, parking_idx):
-        self.y += self.y_step
         self.yaw = self.yaw_to_r if parking_idx < (every_parking_num / 2) else self.yaw_to_l
-        return self.get_cur_ego_transform()
+        ego_transform = self.get_cur_ego_transform()
+        self.y += self.y_step
+        return ego_transform
