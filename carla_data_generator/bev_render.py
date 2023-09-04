@@ -87,7 +87,7 @@ class BevRender:
 
     def render_BEV(self, state):
 
-        ego_t = state["ego_t"]
+        ego_t = self._vehicle.get_transform()
         semantic_grid = self.global_map
 
         # fetch local birdview per agent
@@ -101,9 +101,11 @@ class BevRender:
             ego_yaw
         )
 
-        for vehicle_t, vehicle in zip(state["vehicle_ts"], self._world.get_actors().filter('*vehicle*')):
-            if (vehicle.get_location().distance(ego_t.location) < self.detection_radius):
-                if (vehicle.id != self._vehicle.id):
+        actor = self._world.get_actors()
+        vehicles = actor.filter('*vehicle*')
+        for vehicle in vehicles:
+            if vehicle.get_location().distance(ego_t.location) < self.detection_radius:
+                if vehicle.id != self._vehicle.id:
                     pos = torch.tensor([vehicle.get_transform().location.x, vehicle.get_transform().location.y],
                                        device=self._device, dtype=torch.float32)
                     yaw = torch.tensor([vehicle.get_transform().rotation.yaw / 180 * np.pi], device=self._device,
