@@ -5,8 +5,7 @@ import pygame
 
 from carla_data_generator.network_evaluator import NetworkEvaluator
 from carla_data_generator.keyboard_control import KeyboardControl
-from parking_agent import ParkingAgent
-from parking_agent import show_control_info
+from agent.parking_agent import ParkingAgent, show_control_info
 
 
 def game_loop(args):
@@ -25,12 +24,11 @@ def game_loop(args):
         parking_agent = ParkingAgent(network_evaluator, args)
         controller = KeyboardControl(network_evaluator.world)
 
+        display = pygame.display.set_mode((args.width, args.height),
+                                          pygame.HWSURFACE | pygame.DOUBLEBUF)
+
         steer_wheel_img = pygame.image.load("./resource/steer_wheel.png")
         font = pygame.font.Font(pygame.font.get_default_font(), 25)
-
-        display = pygame.display.set_mode(
-            (args.width, args.height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF)
 
         clock = pygame.time.Clock()
         while True:
@@ -46,7 +44,6 @@ def game_loop(args):
             pygame.display.flip()
 
     finally:
-
         if network_evaluator:
             client.stop_recorder()
 
@@ -96,11 +93,11 @@ def main():
         help='Gamma correction of the camera (default: 0.0)')
     argparser.add_argument(
         '--model_path',
-        default='./ckpt/model.ckpt',
+        default='/home/dlonng/Documents/E2EParking/e2e-vehicle/ckpt/exp_2023_9_2_13_8_47/last.ckpt',
         help='path to model.ckpt')
     argparser.add_argument(
         '--model_config_path',
-        default='./config/training.yaml',
+        default='/home/dlonng/Documents/E2EParking/e2e-vehicle/config/training.yaml',
         help='path to model training.yaml')
     argparser.add_argument(
         '--eva_epochs',
@@ -138,7 +135,7 @@ def main():
         help='random seed to initialize env; if sets to 0, use current timestamp as seed (default: 0)')
     argparser.add_argument(
         '--bev_render_device',
-        default='cuda',
+        default='cpu',
         help='device used for BEV Rendering (default: cpu)',
         choices=['cpu', 'cuda'])
     argparser.add_argument(

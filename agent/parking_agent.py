@@ -257,13 +257,13 @@ class ParkingAgent:
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.model = ParkingModel(self.cfg)
         ckpt = torch.load(parking_pth_path, map_location='cuda:0')
-        state_dict = OrderedDict([(k.replace('model.', ''), v) for k, v in ckpt['state_dict'].items()])
+        state_dict = OrderedDict([(k.replace('parking_model.', ''), v) for k, v in ckpt['state_dict'].items()])
         self.model.load_state_dict(state_dict)
         self.model.to(self.device)
         self.model.eval()
 
-        patch_attention(self.model.feature_fusion.encoder.layers[-1].self_attn)
-        self.hook_handle = self.model.feature_fusion.encoder.layers[-1].self_attn.register_forward_hook(
+        patch_attention(self.model.feature_fusion.tf_encoder.layers[-1].self_attn)
+        self.hook_handle = self.model.feature_fusion.tf_encoder.layers[-1].self_attn.register_forward_hook(
             self.save_output)
 
         logging.info('Load E2EParkingModel from %s', parking_pth_path)
@@ -336,8 +336,7 @@ class ParkingAgent:
         rear_to_ego = torch.from_numpy(veh2cam_dict['rgb_rear']).float().unsqueeze(0)
         self.extrinsic = torch.cat([front_to_ego, left_to_ego, right_to_ego, rear_to_ego], dim=0)
 
-        self.image_process = ProcessImage(veh2cam_dict, self.world.intrinsic,
-                                          self.world.cam_config, self.cfg.image_crop)
+        self.image_process = ProcessImage(self.cfg.image_crop)
 
         self.step = -1
         self.pre_target_point = None
@@ -455,12 +454,10 @@ class ParkingAgent:
 
         target_point = convert_slot_coord(vehicle_transform, self.net_eva.eva_parking_goal)
 
-        front_final, self.rgb_front = self.image_process(target_point, cam_id='rgb_front',
-                                                         image=data_frame['rgb_front'])
-        left_final, self.rgb_left = self.image_process(target_point, cam_id='rgb_left', image=data_frame['rgb_left'])
-        right_final, self.rgb_right = self.image_process(target_point, cam_id='rgb_right',
-                                                         image=data_frame['rgb_right'])
-        rear_final, self.rgb_rear = self.image_process(target_point, cam_id='rgb_rear', image=data_frame['rgb_rear'])
+        front_final, self.rgb_front = self.image_process(data_frame['rgb_front'])
+        left_final, self.rgb_left = self.image_process(data_frame['rgb_left'])
+        right_final, self.rgb_right = self.image_process(data_frame['rgb_right'])
+        rear_final, self.rgb_rear = self.image_process(data_frame['rgb_rear'])
 
         images = [front_final, left_final, right_final, rear_final]
         images = torch.cat(images, dim=0)

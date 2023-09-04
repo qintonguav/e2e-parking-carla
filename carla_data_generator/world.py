@@ -417,7 +417,7 @@ class World(object):
 
     @property
     def y_diff_to_goal(self):
-        return self._x_diff_to_goal
+        return self._y_diff_to_goal
 
     @y_diff_to_goal.setter
     def y_diff_to_goal(self, diff):
@@ -438,6 +438,18 @@ class World(object):
     @rotation_diff_to_goal.setter
     def rotation_diff_to_goal(self, diff):
         self._rotation_diff_to_goal = diff
+
+    @property
+    def cam_config(self):
+        return self._cam_config
+
+    @property
+    def intrinsic(self):
+        return self._intrinsic
+
+    @property
+    def veh2cam_dict(self):
+        return self._veh2cam_dict
 
     @property
     def keyboard_restart_task(self):

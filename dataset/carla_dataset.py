@@ -507,4 +507,4 @@ class ProcessImage:
 
         crop_image = scale_and_crop_image(image, scale=1.0, crop=self.crop)
 
-        return self.normalise_image(np.array(crop_image)).unsqueeze(0)
+        return self.normalise_image(np.array(crop_image)).unsqueeze(0), crop_image
