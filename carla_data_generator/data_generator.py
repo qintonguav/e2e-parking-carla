@@ -1,14 +1,15 @@
+import sys
 import json
 import math
 import random
 import logging
-import sys
-from datetime import datetime
 import pathlib
-from threading import Thread
 
 import numpy as np
 import cv2
+
+from datetime import datetime
+from threading import Thread
 
 from carla_data_generator import parking_position
 from carla_data_generator.tools import encode_npy_to_pil

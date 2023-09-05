@@ -64,7 +64,7 @@ class NetworkEvaluator:
         self._num_frames_in_goal_needed = 2 * self._frames_per_second         # 2s
         self._num_frames_nearby_goal_needed = 2 * self._frames_per_second     # 2s
         self._num_frames_nearby_no_goal_needed = 2 * self._frames_per_second  # 2s
-        self._num_frames_outbound_needed = 20 * self._frames_per_second       # 20s
+        self._num_frames_outbound_needed = 10 * self._frames_per_second       # 10s
         self._num_frames_total_needed = 30 * self._frames_per_second          # 30s
 
         # metric for 1 slot
@@ -153,7 +153,8 @@ class NetworkEvaluator:
             return
 
         if self._render_bev:
-            pass
+            sensor_data_frame = self._world.sensor_data_frame
+            sensor_data_frame['topdown'] = self._world.render_BEV()
 
         # detect timeout
         if self._num_frames_total > self._num_frames_total_needed:
@@ -168,6 +169,8 @@ class NetworkEvaluator:
         ego_loc = self._world.ego_transform.location
         if self.is_out_of_bound(ego_loc):
             self._num_frames_outbound += 1
+        else:
+            self._num_frames_outbound = 0
 
         if self._num_frames_outbound > self._num_frames_outbound_needed:
             self._outbound_nums += 1
@@ -202,15 +205,15 @@ class NetworkEvaluator:
         self._eva_task_idx = 0
         self.clear_metric_rate()
         self._epoch_metric_info = {}
-        logging.info("***************** Start eva task %s-%d *****************",
-                     parking_position.slot_id[self._eva_task_idx], self._eva_parking_idx + 1)
+        logging.info("***************** Start eva task %s *****************",
+                     parking_position.slot_id[self._eva_task_idx])
 
     def start_next_parking(self):
         self._agent_need_init = True
 
         self._eva_parking_idx += 1
         if self.is_complete_slot(self._eva_parking_idx):
-            logging.info("***************** End eva task %s *****************",
+            logging.info("*****************   End eva task %s *****************",
                          parking_position.slot_id[self._eva_task_idx])
             self.save_slot_metric()
             self.start_next_slot()
@@ -232,10 +235,10 @@ class NetworkEvaluator:
             logging.info("***************** End eva epoch %d *****************", self._eva_epoch_idx + 1)
             self.save_epoch_metric_csv()
             self._eva_epoch_idx += 1
-            if self._eva_epoch_idx >= self._eva_parking_nums:
+            if self._eva_epoch_idx >= self._eva_epochs:
                 logging.info("***************** Complete all %d epoch, Thanks! *****************",
                              self._eva_epochs)
-                self.save_epoch_metric_acg_std_csv()
+                self.save_avg_std_csv()
                 exit(0)
             else:
                 self.start_eva_epoch()
@@ -321,7 +324,7 @@ class NetworkEvaluator:
         self._x_diff_to_goal = sys.float_info.max
         self._y_diff_to_goal = sys.float_info.max
         self._distance_diff_to_goal = sys.float_info.max
-        self._orientation_diff_to_goal = min(r.yaw, 180 - abs(r.yaw))
+        self._orientation_diff_to_goal = min(abs(r.yaw), 180 - abs(r.yaw))
         for parking_goal in self._world.all_parking_goals:
             if t.distance(parking_goal) < self._distance_diff_to_goal:
                 self._distance_diff_to_goal = t.distance(parking_goal)
@@ -375,17 +378,15 @@ class NetworkEvaluator:
         return False
 
     def check_fail_slot(self, closest_goal, ego_transform):
-        x_in_rough_slot = \
+        x_not_in_slot = \
             (self._goal_reach_x_diff < abs(ego_transform.x - closest_goal[0]) <= self._goal_reach_x_diff * 2)
-        y_in_rough_slot = \
+        y_not_in_slot = \
             (self._goal_reach_y_diff < abs(ego_transform.y - closest_goal[1]) <= self._goal_reach_y_diff * 2)
-        r_in_rough_slot = \
-            (self._goal_reach_orientation_diff <
-             self._orientation_diff_to_goal <=
-             self._goal_reach_orientation_diff * 2)
+        r_not_in_slot = (self._goal_reach_orientation_diff <
+                         self._orientation_diff_to_goal <=
+                         self._goal_reach_orientation_diff * 2)
 
-        dist_in_rough_slot = x_in_rough_slot and y_in_rough_slot
-        if dist_in_rough_slot or r_in_rough_slot:
+        if x_not_in_slot or y_not_in_slot or r_not_in_slot:
             if (self._eva_parking_goal[0] == closest_goal[0]) and (self._eva_parking_goal[1] == closest_goal[1]):
                 self._num_frames_nearby_goal += 1
             else:
@@ -465,7 +466,7 @@ class NetworkEvaluator:
     def save_csv(self):
         pass
 
-    def save_epoch_metric_acg_std_csv(self):
+    def save_avg_std_csv(self):
         pass
 
     def is_out_of_bound(self, ego_loc):

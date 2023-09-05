@@ -1,5 +1,7 @@
 import torch
 import pytorch_lightning as pl
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 from pytorch_lightning.callbacks import ModelCheckpoint, TQDMProgressBar, LearningRateMonitor, ModelSummary
 
@@ -120,6 +122,24 @@ class ParkingTrainingModule(pl.LightningModule):
         return { "optimizer": optimizer, "scheduler": scheduler }
 
     def log_segmentation(self, pred_segmentation, gt_segmentation, name):
+        # ax = plt.subplots(1, 2, figsize=(10, 10))
+        # ax[0].set_title("Pred Seg")
+        # ax[1].set_title("GT Seg")
+        #
+        # pred_segmentation = pred_segmentation[0]
+        # pred_segmentation = torch.argmax(pred_segmentation, dim=0, keepdim=True)
+        # pred_segmentation = pred_segmentation.detach().cpu().numpy()
+        # pred_segmentation[pred_segmentation == 1] = 128
+        # pred_segmentation[pred_segmentation == 2] = 255
+        # pred_seg_img = pred_segmentation[0, :, :][::-1]
+        #
+        # gt_segmentation = gt_segmentation[0]
+        # gt_segmentation[gt_segmentation == 1] = 128
+        # gt_segmentation[gt_segmentation == 2] = 255
+        # gt_seg_img = gt_segmentation[0, :, :][::-1]
+        #
+        # ax[0].imshow(pred_seg_img)
+        # ax[1].imshow(gt_seg_img)
         pass
 
     def log_depth(self, pred_depth, gt_depth, name):

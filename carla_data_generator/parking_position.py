@@ -4,7 +4,7 @@ import carla
 town04_bound = {
     "x_min": 264.0,
     "x_max": 304.0,
-    "y_min": -214.0,
+    "y_min": -241.0,
     "y_max": -178.0,
 }
 
@@ -136,8 +136,14 @@ class EgoPosTown04:
         self.update_y_scope(goal_y)
 
         self.y = self.y_min
-        self.y_step = (self.y_max - self.y_min) / (every_parking_num - 1)
         self.yaw = self.yaw_to_r if parking_idx < (every_parking_num / 2) else self.yaw_to_l
+
+        if every_parking_num != 1:
+            self.y_step = (self.y_max - self.y_min) / (every_parking_num - 1)
+            self.y = self.y_min
+        else:
+            self.y_step = 0.0
+            self.y = self.goal_y
 
     def get_data_gen_ego_transform(self):
         self.y = random.uniform(self.y_min, self.y_max)
