@@ -85,8 +85,7 @@ class BevRender:
     def set_player(self, player):
         self._vehicle = player
 
-    def render_BEV(self, state):
-
+    def render_BEV(self):
         ego_t = self._vehicle.get_transform()
         semantic_grid = self.global_map
 

@@ -24,7 +24,10 @@ def train():
     args = arg_parser.parse_args()
 
     with open(args.config, 'r') as yaml_file:
-        cfg_yaml = yaml.safe_load(yaml_file)
+        try:
+            cfg_yaml = yaml.safe_load(yaml_file)
+        except yaml.YAMLError:
+            logger.error("Open {} failed!", args.config)
     cfg = get_cfg(cfg_yaml)
 
     logger.remove()
@@ -42,7 +45,8 @@ def train():
                               devices=num_gpus,
                               max_epochs=cfg.epochs,
                               log_every_n_steps=cfg.log_every_n_steps,
-                              check_val_every_n_epoch=cfg.check_val_every_n_epoch)
+                              check_val_every_n_epoch=cfg.check_val_every_n_epoch,
+                              profiler='simple')
 
     parking_model = ParkingTrainingModule(cfg)
     parking_datamodule = ParkingDataModule(cfg)

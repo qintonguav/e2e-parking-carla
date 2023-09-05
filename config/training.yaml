@@ -1,6 +1,6 @@
 parking_model:
   # train
-  data_dir: '/home/dlonng/parking_dataset/'
+  data_dir: '/media/dlonng/Data/E2EParking/dataset/test/'
   log_dir: './log/'
   checkpoint_dir: './ckpt'
   log_every_n_steps: 10
@@ -9,7 +9,7 @@ parking_model:
   epochs: 155
   learning_rate: 0.0001
   weight_decay: 0.0001
-  batch_size: 12
+  batch_size: 2
 
   training_map: "Town04_Opt"
   validation_map: "Town04_Opt_Val"

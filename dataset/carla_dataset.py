@@ -352,19 +352,25 @@ class CarlaDataset(torch.utils.data.Dataset):
         self.left = np.array(self.left).astype(np.string_)
         self.right = np.array(self.right).astype(np.string_)
         self.rear = np.array(self.rear).astype(np.string_)
+
         self.front_depth = np.array(self.front_depth).astype(np.string_)
         self.left_depth = np.array(self.left_depth).astype(np.string_)
         self.right_depth = np.array(self.right_depth).astype(np.string_)
         self.rear_depth = np.array(self.rear_depth).astype(np.string_)
+
         self.topdown = np.array(self.topdown).astype(np.string_)
+
         self.velocity = np.array(self.velocity).astype(np.float32)
         self.acc_x = np.array(self.acc_x).astype(np.float32)
         self.acc_y = np.array(self.acc_y).astype(np.float32)
+
+        self.control = np.array(self.control).astype(np.int64)
+
         self.throttle_brake = np.array(self.throttle_brake).astype(np.float32)
         self.steer = np.array(self.steer).astype(np.float32)
         self.reverse = np.array(self.reverse).astype(np.int64)
+
         self.target_point = np.array(self.target_point).astype(np.float32)
-        self.control = np.array(self.control).astype(np.int64)
 
         logger.info('Preloaded {} sequences', str(len(self.front)))
 
@@ -379,8 +385,8 @@ class CarlaDataset(torch.utils.data.Dataset):
             data[key] = []
 
         # image & extrinsics & intrinsics
-        images = [self.image_process(self.front[index]), self.image_process(self.left[index]),
-                  self.image_process(self.right[index]), self.image_process(self.rear[index])]
+        images = [self.image_process(self.front[index])[0], self.image_process(self.left[index])[0],
+                  self.image_process(self.right[index])[0], self.image_process(self.rear[index])[0]]
         images = torch.cat(images, dim=0)
         data['image'] = images
 

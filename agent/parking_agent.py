@@ -1,13 +1,13 @@
-import sys
 import carla
 import math
 import pathlib
 import yaml
 import torch
-import numpy as np
 import logging
 import time
 import pygame
+
+import numpy as np
 import matplotlib.pyplot as plt
 
 from PIL import Image

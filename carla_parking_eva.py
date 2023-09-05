@@ -28,7 +28,8 @@ def game_loop(args):
                                           pygame.HWSURFACE | pygame.DOUBLEBUF)
 
         steer_wheel_img = pygame.image.load("./resource/steer_wheel.png")
-        font = pygame.font.Font(pygame.font.get_default_font(), 25)
+        steer_wheel_img = pygame.transform.scale(steer_wheel_img, (100, 100))
+        font = pygame.font.Font(None, 25)
 
         clock = pygame.time.Clock()
         while True:
@@ -37,10 +38,10 @@ def game_loop(args):
             if controller.parse_events(client, network_evaluator.world, clock):
                 return
             parking_agent.tick()
-            show_control_info(display, parking_agent.get_eva_control(), steer_wheel_img,
-                              args.width, args.height, font)
             network_evaluator.tick(clock)
             network_evaluator.render(display)
+            show_control_info(display, parking_agent.get_eva_control(), steer_wheel_img,
+                              args.width, args.height, font)
             pygame.display.flip()
 
     finally:
