@@ -438,7 +438,7 @@ class ProcessSemantic:
         """
 
         # read image from disk
-        if not isinstance(image, carla.Image):
+        if not isinstance(image, Image.Image):
             image = Image.open(image)
         image = image.convert('L')
 

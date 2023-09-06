@@ -19,6 +19,7 @@ from tool.config import Configuration, get_cfg
 from dataset.carla_dataset import ProcessImage, convert_slot_coord, ProcessSemantic
 from dataset.carla_dataset import detokenize
 from carla_data_generator.network_evaluator import NetworkEvaluator
+from carla_data_generator.tools import encode_npy_to_pil
 from model.parking_model import ParkingModel
 
 
@@ -480,7 +481,7 @@ class ParkingAgent:
             img = encode_npy_to_pil(np.asarray(data_frame['topdown'].squeeze().cpu()))
             img = np.moveaxis(img, 0, 2)
             img = Image.fromarray(img)
-            seg_gt = self.semantic_process(path=None, image=img, scale=0.5, crop=200, target_slot=target_point)
+            seg_gt = self.semantic_process(image=img, scale=0.5, crop=200, target_slot=target_point)
             seg_gt[seg_gt == 1] = 128
             seg_gt[seg_gt == 2] = 255
             data['segmentation'] = Image.fromarray(seg_gt)
