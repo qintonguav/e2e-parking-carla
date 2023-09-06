@@ -18,8 +18,8 @@ from tool.geometry import update_intrinsics
 from tool.config import Configuration, get_cfg
 from dataset.carla_dataset import ProcessImage, convert_slot_coord, ProcessSemantic
 from dataset.carla_dataset import detokenize
-from carla_data_generator.network_evaluator import NetworkEvaluator
-from carla_data_generator.tools import encode_npy_to_pil
+from data_generation.network_evaluator import NetworkEvaluator
+from data_generation.tools import encode_npy_to_pil
 from model.parking_model import ParkingModel
 
 

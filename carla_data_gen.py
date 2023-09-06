@@ -3,8 +3,8 @@ import logging
 import carla
 import pygame
 
-from carla_data_generator.data_generator import DataGenerator
-from carla_data_generator.keyboard_control import KeyboardControl
+from data_generation.data_generator import DataGenerator
+from data_generation.keyboard_control import KeyboardControl
 
 
 def game_loop(args):
