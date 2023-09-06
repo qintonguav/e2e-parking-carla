@@ -1,5 +1,6 @@
 import torch.nn as nn
 import numpy as np
+
 from efficientnet_pytorch import EfficientNet
 from model.convolutions import UpsamplingConcat, DeepLabHead
 

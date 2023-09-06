@@ -7,10 +7,10 @@ from queue import Queue, Empty
 import numpy as np
 import carla
 
-from carla_data_generator.hud import HUD, get_actor_display_name
-from carla_data_generator.sensors import CollisionSensor, CameraManager
-from carla_data_generator import parking_position
-from carla_data_generator.bev_render import BevRender
+from data_generation.hud import HUD, get_actor_display_name
+from data_generation.sensors import CollisionSensor, CameraManager
+from data_generation import parking_position
+from data_generation.bev_render import BevRender
 
 parking_vehicle_rotation = [
     carla.Rotation(yaw=180),

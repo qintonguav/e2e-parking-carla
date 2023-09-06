@@ -11,9 +11,9 @@ import cv2
 from datetime import datetime
 from threading import Thread
 
-from carla_data_generator import parking_position
-from carla_data_generator.tools import encode_npy_to_pil
-from carla_data_generator.world import World
+from data_generation import parking_position
+from data_generation.tools import encode_npy_to_pil
+from data_generation.world import World
 
 
 class DataGenerator:

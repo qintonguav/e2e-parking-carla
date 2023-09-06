@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+
 from tool.config import Configuration
 from model.bev_model import BevModel
 from model.bev_encoder import BevEncoder

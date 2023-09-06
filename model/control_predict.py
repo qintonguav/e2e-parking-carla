@@ -1,7 +1,8 @@
 import torch
+
 from torch import nn
-from tool.config import Configuration
 from timm.models.layers import trunc_normal_
+from tool.config import Configuration
 
 
 class ControlPredict(nn.Module):

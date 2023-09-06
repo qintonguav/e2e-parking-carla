@@ -9,8 +9,8 @@ import pandas as pd
 
 from datetime import datetime
 
-from carla_data_generator import parking_position
-from carla_data_generator.world import World
+from data_generation import parking_position
+from data_generation.world import World
 
 
 class NetworkEvaluator:

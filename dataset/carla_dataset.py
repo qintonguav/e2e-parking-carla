@@ -1,11 +1,10 @@
 import json
 import os
-
 import carla
 import torch.utils.data
 import numpy as np
 import torchvision.transforms
-import PIL
+
 from PIL import Image
 from loguru import logger
 
@@ -439,7 +438,7 @@ class ProcessSemantic:
         """
 
         # read image from disk
-        if not isinstance(image, carla.Image):
+        if not isinstance(image, Image.Image):
             image = Image.open(image)
         image = image.convert('L')
 

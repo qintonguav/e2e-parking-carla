@@ -3,8 +3,8 @@ import logging
 import carla
 import pygame
 
-from carla_data_generator.network_evaluator import NetworkEvaluator
-from carla_data_generator.keyboard_control import KeyboardControl
+from data_generation.network_evaluator import NetworkEvaluator
+from data_generation.keyboard_control import KeyboardControl
 from agent.parking_agent import ParkingAgent, show_control_info
 
 

@@ -9,7 +9,7 @@ import carla
 
 from carla import ColorConverter as cc
 
-from carla_data_generator.hud import get_actor_display_name
+from data_generation.hud import get_actor_display_name
 
 
 class CollisionSensor(object):
