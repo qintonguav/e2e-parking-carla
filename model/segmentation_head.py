@@ -1,7 +1,8 @@
 import math
+import torch.nn.functional as F
+
 from torch import nn
 from tool.config import Configuration
-import torch.nn.functional as F
 
 
 class SegmentationHead(nn.Module):

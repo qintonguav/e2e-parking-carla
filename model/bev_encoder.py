@@ -1,7 +1,8 @@
 import torch
+import torch.nn.functional as F
+
 from torch import nn
 from torchvision.models.resnet import resnet18
-import torch.nn.functional as F
 
 
 class BevEncoder(nn.Module):

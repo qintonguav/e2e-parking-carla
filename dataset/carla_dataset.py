@@ -1,11 +1,10 @@
 import json
 import os
-
 import carla
 import torch.utils.data
 import numpy as np
 import torchvision.transforms
-import PIL
+
 from PIL import Image
 from loguru import logger
 

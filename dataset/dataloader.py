@@ -1,6 +1,6 @@
 import torch
-import numpy as np
 import random
+import numpy as np
 import pytorch_lightning as pl
 
 from torch.utils.data import DataLoader
@@ -30,14 +30,14 @@ class ParkingDataModule(pl.LightningDataModule):
         self.train_loader = DataLoader(dataset=train_set,
                                        batch_size=self.cfg.batch_size,
                                        shuffle=True,
-                                       num_workers=0,
+                                       num_workers=8,
                                        pin_memory=True,
                                        worker_init_fn=seed_worker,
                                        drop_last=True)
         self.val_loader = DataLoader(dataset=val_set,
                                      batch_size=self.cfg.batch_size,
                                      shuffle=False,
-                                     num_workers=0,
+                                     num_workers=8,
                                      pin_memory=True,
                                      worker_init_fn=seed_worker,
                                      drop_last=True)

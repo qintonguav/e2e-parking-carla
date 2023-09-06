@@ -1,6 +1,7 @@
-import torch
-from datetime import datetime
 import os
+import torch
+
+from datetime import datetime
 
 
 class Configuration:

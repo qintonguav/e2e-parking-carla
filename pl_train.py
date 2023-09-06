@@ -42,6 +42,7 @@ def train():
     parking_trainer = Trainer(callbacks=parking_callbacks,
                               logger=tensor_logger,
                               accelerator='gpu',
+                              strategy='ddp' if num_gpus > 1 else None,
                               devices=num_gpus,
                               max_epochs=cfg.epochs,
                               log_every_n_steps=cfg.log_every_n_steps,

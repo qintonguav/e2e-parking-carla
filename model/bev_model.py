@@ -1,4 +1,5 @@
 import torch
+
 from torch import nn
 from model.cam_encoder import CamEncoder
 from tool.config import Configuration

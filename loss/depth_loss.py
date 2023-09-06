@@ -1,8 +1,9 @@
 import torch
-from torch import nn
-from tool.config import Configuration
 import torch.nn.functional as F
+
+from torch import nn
 from torch.cuda.amp.autocast_mode import autocast
+from tool.config import Configuration
 
 
 class DepthLoss(nn.Module):

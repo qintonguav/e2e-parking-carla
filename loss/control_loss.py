@@ -1,7 +1,8 @@
 import torch
+import numpy as np
+
 from torch import nn
 from tool.config import Configuration
-import numpy as np
 
 
 class ControlLoss(nn.Module):
