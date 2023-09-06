@@ -4,6 +4,7 @@ from torch import nn
 from timm.models.layers import trunc_normal_
 from tool.config import Configuration
 
+
 class ControlPredict(nn.Module):
     def __init__(self, cfg: Configuration):
         super().__init__()
