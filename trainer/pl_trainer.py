@@ -121,49 +121,49 @@ class ParkingTrainingModule(pl.LightningModule):
         return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
 
     def log_segmentation(self, pred_segmentation, gt_segmentation, name):
-        # fig, ax = plt.subplots(1, 2, figsize=(20, 10))
-        # ax[0].set_title("GT Seg")
-        # ax[1].set_title("Pred Seg")
-        #
-        # pred_segmentation = pred_segmentation[0]
-        # pred_segmentation = torch.argmax(pred_segmentation, dim=0, keepdim=True)
-        # pred_segmentation = pred_segmentation.detach().cpu().numpy()
-        # pred_segmentation[pred_segmentation == 1] = 128
-        # pred_segmentation[pred_segmentation == 2] = 255
-        # pred_seg_img = pred_segmentation[0, :, :][::-1]
-        #
-        # gt_segmentation = gt_segmentation[0]
-        # gt_segmentation[gt_segmentation == 1] = 128
-        # gt_segmentation[gt_segmentation == 2] = 255
-        # gt_segmentation = gt_segmentation.detach().cpu().numpy()
-        # gt_seg_img = gt_segmentation[0, :, :][::-1]
-        #
-        # norm = mpl.colors.Normalize(vmin=0, vmax=255)
-        # ax[0].imshow(gt_seg_img, norm=norm)
-        # ax[1].imshow(pred_seg_img, norm=norm)
-        #
-        # tensorboard = self.logger.experiment
-        # tensorboard.add_figure(figure=fig, tag=name)
-        # plt.close(fig)
-        pass
+        fig, ax = plt.subplots(1, 2, figsize=(20, 10))
+        ax[0].set_title("GT Seg")
+        ax[1].set_title("Pred Seg")
+
+        pred_segmentation = pred_segmentation[0]
+        pred_segmentation = torch.argmax(pred_segmentation, dim=0, keepdim=True)
+        pred_segmentation = pred_segmentation.detach().cpu().numpy()
+        pred_segmentation[pred_segmentation == 1] = 128
+        pred_segmentation[pred_segmentation == 2] = 255
+        pred_seg_img = pred_segmentation[0, :, :][::-1]
+
+        gt_segmentation = gt_segmentation[0]
+        gt_segmentation = gt_segmentation.detach().cpu().numpy()
+        gt_segmentation[gt_segmentation == 1] = 128
+        gt_segmentation[gt_segmentation == 2] = 255
+        gt_seg_img = gt_segmentation[0, :, :][::-1]
+
+        norm = mpl.colors.Normalize(vmin=0, vmax=255)
+        ax[0].imshow(gt_seg_img, norm=norm)
+        ax[1].imshow(pred_seg_img, norm=norm)
+
+        tensorboard = self.logger.experiment
+        tensorboard.add_figure(figure=fig, tag=name)
+        plt.close(fig)
 
     def log_depth(self, pred_depth, gt_depth, name):
-        # fig, ax = plt.subplots(1, 2, figsize=(20, 10))
-        # ax[0].set_title("GT Depth")
-        # ax[1].set_title("Pred Depth")
+        fig, ax = plt.subplots(1, 2, figsize=(20, 10))
+        ax[0].set_title("GT Depth")
+        ax[1].set_title("Pred Depth")
 
-        # pred_depth = pred_depth[1]
-        # pred_depth = torch.softmax(pred_depth, dim=0)
-        # pred_depth = pred_depth.detach().cpu().numpy()
-        # pred_depth = pred_depth * self.cfg.d_bound[2] + self.cfg.d_bound[0]
-        #
-        # gt_depth = gt_depth[0][1]
-        # gt_depth = gt_depth.detach().cpu().numpy()
-        #
-        # ax[0].imshow(gt_depth)
-        # ax[1].imshow(pred_depth)
-        #
-        # tensorboard = self.logger.experiment
-        # tensorboard.add_figure(figure=fig, tag=name)
-        # plt.close(fig)
-        pass
+        pred_depth = pred_depth[1]
+        pred_depth = torch.argmax(pred_depth, dim=0)
+        pred_depth = pred_depth.detach().cpu().numpy()
+        pred_depth = pred_depth * self.cfg.d_bound[2] + self.cfg.d_bound[0]
+
+        gt_depth = gt_depth[0][1]
+        gt_depth = gt_depth.detach().cpu().numpy()
+
+        norm = mpl.colors.Normalize()
+        ax[0].imshow(gt_depth)
+        ax[1].imshow(pred_depth, norm=norm)
+
+        tensorboard = self.logger.experiment
+        tensorboard.add_figure(figure=fig, tag=name)
+        plt.close(fig)
+
