@@ -6,6 +6,7 @@ import pathlib
 import carla
 import numpy as np
 import pandas as pd
+import glob
 
 from datetime import datetime
 
@@ -232,13 +233,11 @@ class NetworkEvaluator:
     def start_next_slot(self):
         self._eva_task_idx += 1
         if self.is_complete_epoch(self._eva_task_idx):
-            logging.info("***************** End eva epoch %d *****************", self._eva_epoch_idx + 1)
+            logging.info("*****************   End eva epoch %d *****************", self._eva_epoch_idx + 1)
             self.save_epoch_metric_csv()
             self._eva_epoch_idx += 1
             if self._eva_epoch_idx >= self._eva_epochs:
-                logging.info("***************** Complete all %d epoch, Thanks! *****************",
-                             self._eva_epochs)
-                self.save_avg_std_csv()
+                self.save_mean_std_csv()
                 exit(0)
             else:
                 self.start_eva_epoch()
@@ -463,11 +462,57 @@ class NetworkEvaluator:
             'average_parking_time': np.mean(self._average_parking_time),
         }
 
-    def save_csv(self):
-        pass
+        info_df = pd.DataFrame(self._epoch_metric_info)
+        csv_name = 'eva_epoch_' + str(self._eva_epoch_idx + 1) + '_result.csv'
+        self.save_csv(info_df, csv_name)
+        logging.info(f"eva epoch {self._eva_epoch_idx + 1} total time: {datetime.now() - self._start_time}")
 
-    def save_avg_std_csv(self):
-        pass
+    def save_csv(self, info_df, csv_name):
+        info_df = info_df.T
+        info_df.rename(columns=self._metric_names, inplace=True)
+        pd.set_option('display.max_columns', 100)
+        pd.options.display.float_format = '{:,.2f}'.format
+        print(info_df)
+        info_df.to_csv(self._eva_result_path / csv_name)
+
+    def save_mean_std_csv(self):
+        df_mean = pd.DataFrame()
+        df_std = pd.DataFrame()
+        csv_files = glob.glob(f'{self._eva_result_path}/*_result.csv')
+        for i in range(16):
+            df_row_i = pd.DataFrame()
+            for csv in csv_files:
+                df_csv = pd.read_csv(csv)
+                row_i = df_csv.iloc[[i]]
+                df_row_i = df_row_i.append(row_i)
+
+            row_i_mean = df_row_i.mean(axis=0).to_frame().T
+            row_i_std = (df_row_i.std(axis=0, ddof=0).to_frame().T / math.sqrt(6))
+
+            df_mean = pd.concat([df_mean, row_i_mean], axis=0)
+            df_std = pd.concat([df_std, row_i_std], axis=0)
+
+        row_mean = df_mean.mean(axis=0).to_frame().T
+        row_std = df_std.mean(axis=0).to_frame().T
+        df_mean = pd.concat([df_mean, row_mean], axis=0)
+        df_std = pd.concat([df_std, row_std], axis=0)
+
+        name = ['2-1', '2-3', '2-5', '2-7', '3-9', '2-11', '2-13', '2-15',
+                '3-1', '3-3', '3-5', '3-7', '3-9', '3-11', '3-13', '3-15', 'Avg']
+        df_mean.index = name
+        df_std.index = name
+
+        pd.set_option('display.max_columns', 100)
+        pd.options.display.float_format = '{:,.2f}'.format
+
+        logging.info('Mean')
+        print(df_mean)
+
+        logging.info('Std')
+        print(df_std)
+
+        df_mean.to_csv(self._eva_result_path / 'result_mean.csv')
+        df_std.to_csv(self._eva_result_path / 'result_std.csv')
 
     def is_out_of_bound(self, ego_loc):
         x_out_bound = ((ego_loc.x < parking_position.town04_bound['x_min']) or
