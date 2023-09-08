@@ -33,7 +33,7 @@ class ControlValLoss(nn.Module):
 
     def detokenize_acc(self, acc_token):
         if acc_token > self.half_token:
-            acc = acc_token / self.half_token - 1
+            acc = (acc_token / self.half_token - 1)
         else:
             acc = -(acc_token / self.half_token - 1)
         return acc
@@ -52,7 +52,7 @@ class ControlValLoss(nn.Module):
         pred_acc_token = pred_acc_token.argmax(dim=-1)
         pred_acc_token = pred_acc_token.reshape(-1).tolist()
         pred_acc = [self.detokenize_acc(x) for x in pred_acc_token]
-        pred_acc = torch.from_numpy(np.array(pred_acc).astype(np.float32)).cuda()
+        pred_acc = torch.from_numpy(np.array(pred_acc, dtype=np.float32)).cuda()
         gt_acc = data['gt_acc'].reshape(-1).cuda()
         acc_val_loss = self.l1_loss(pred_acc, gt_acc)
 

@@ -43,14 +43,14 @@ class BevModel(nn.Module):
         return nn.Parameter(frustum, requires_grad=False)
 
     def get_geometry(self, intrinsics, extrinsics):
-        extrinsics = torch.inverse(extrinsics).to(self.cfg.device)
+        extrinsics = torch.inverse(extrinsics).cuda()
         rotation, translation = extrinsics[..., :3, :3], extrinsics[..., :3, 3]
         b, n, _ = translation.shape
 
         points = self.frustum.unsqueeze(0).unsqueeze(0).unsqueeze(-1)
         points = torch.cat((points[:, :, :, :, :, :2] * points[:, :, :, :, :, 2:3],
                             points[:, :, :, :, :, 2:3]), 5)
-        combine_transform = rotation.matmul(torch.inverse(intrinsics)).to(self.cfg.device)
+        combine_transform = rotation.matmul(torch.inverse(intrinsics)).cuda()
         points = combine_transform.view(b, n, 1, 1, 1, 3, 3).matmul(points).squeeze(-1)
         points += translation.view(b, n, 1, 1, 1, 3)
 
@@ -99,7 +99,7 @@ class BevModel(nn.Module):
             x_b, geom_b = VoxelsSumming.apply(x_b, geom_b, ranks)
 
             bev_feature = torch.zeros((self.bev_dim[2], self.bev_dim[0], self.bev_dim[1], c),
-                                      dtype=torch.float, device=image_feature_b.device)
+                                      device=image_feature_b.device)
             bev_feature[geom_b[:, 2], geom_b[:, 0], geom_b[:, 1]] = x_b
             tmp_bev_feature = bev_feature.permute((0, 3, 1, 2)).squeeze(0)
             output[b] = tmp_bev_feature

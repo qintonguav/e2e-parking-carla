@@ -104,7 +104,7 @@ parking_vehicle_locations_Town04 = [
 
 class EgoPosTown04:
     def __init__(self):
-        self.x = 285.600006  # 2-1 slot.x
+        self.x = 285.600006   # 2-1 slot.x
         self.y = -243.729996  # 2-1 slot.y - 8.0
         self.z = 0.32682
         self.yaw = 90.0
@@ -138,7 +138,7 @@ class EgoPosTown04:
         self.y = self.y_min
         self.yaw = self.yaw_to_r if parking_idx < (every_parking_num / 2) else self.yaw_to_l
 
-        if every_parking_num != 1:
+        if every_parking_num > 1:
             self.y_step = (self.y_max - self.y_min) / (every_parking_num - 1)
             self.y = self.y_min
         else:
