@@ -146,7 +146,7 @@ def update_intrinsics(intrinsics, top_crop=0.0, left_crop=0.0, scale_width=1.0, 
 
 
 def add_raw_control(data, throttle_brake, steer, reverse):
-    if data['Brake'] != 0:
+    if data['Brake'] != 0.0:
         throttle_brake.append(-data['Brake'])
     else:
         throttle_brake.append(data['Throttle'])

@@ -30,7 +30,9 @@ class ControlPredict(nn.Module):
         trunc_normal_(self.pos_embed, std=.02)
 
     def create_mask(self, tgt):
-        tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt.shape[1]).cuda()
+        # tgt_mask = nn.Transformer.generate_square_subsequent_mask(tgt.shape[1]).cuda()
+        tgt_mask = (torch.triu(torch.ones((tgt.shape[1], tgt.shape[1]), device=self.cfg.device)) == 1).transpose(0, 1)
+        tgt_mask = tgt_mask.float().masked_fill(tgt_mask == 0, float('-inf')).masked_fill(tgt_mask == 1, float(0.0))
         tgt_padding_mask = (tgt == self.pad_idx)
         return tgt_mask, tgt_padding_mask
 
@@ -68,6 +70,6 @@ class ControlPredict(nn.Module):
         pred_controls = self.decoder(encoder_out, tgt_embedding, tgt_mask, tgt_padding_mask)
         pred_controls = self.output(pred_controls)[:, length - 1, :]
 
-        pred_controls = pred_controls.softmax(dim=-1)
+        pred_controls = torch.softmax(pred_controls, dim=-1)
         pred_controls = pred_controls.argmax(dim=-1).view(-1, 1)
         return pred_controls

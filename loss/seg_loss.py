@@ -11,7 +11,7 @@ class SegmentationLoss(nn.Module):
 
     def forward(self, pred, target):
         if target.shape[-3] != 1:
-            raise ValueError('index label dim channel != 1')
+            raise ValueError('segmentation label must be index label with channel dim = 1')
 
         b, s, c, h, w = pred.shape
         pred_seg = pred.view(b * s, c, h, w)

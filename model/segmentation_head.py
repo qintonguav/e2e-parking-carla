@@ -1,4 +1,6 @@
 import math
+
+import torch
 import torch.nn.functional as F
 
 from torch import nn
@@ -37,9 +39,9 @@ class SegmentationHead(nn.Module):
         return p1
 
     def forward(self, fuse_feature):
-        fuse_feature = fuse_feature.transpose(1, 2)
-        b, c, s = fuse_feature.shape
-        fuse_feature = fuse_feature.reshape(b, c, int(math.sqrt(s)), -1)
-        x = self.top_down(fuse_feature)
-        pred_segmentation = self.segmentation_head(x)
+        fuse_feature_t = fuse_feature.transpose(1, 2)
+        b, c, s = fuse_feature_t.shape
+        fuse_dev = torch.reshape(fuse_feature_t, (b, c, int(math.sqrt(s)), -1))
+        fuse_dev = self.top_down(fuse_dev)
+        pred_segmentation = self.segmentation_head(fuse_dev)
         return pred_segmentation

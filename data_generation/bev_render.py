@@ -100,8 +100,8 @@ class BevRender:
             ego_yaw
         )
 
-        actor = self._world.get_actors()
-        vehicles = actor.filter('*vehicle*')
+        self._actors = self._world.get_actors()
+        vehicles = self._actors.filter('*vehicle*')
         for vehicle in vehicles:
             if vehicle.get_location().distance(ego_t.location) < self.detection_radius:
                 if vehicle.id != self._vehicle.id:
