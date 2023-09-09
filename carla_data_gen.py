@@ -87,7 +87,7 @@ def main():
         help='Gamma correction of the camera (default: 0.0)')
     argparser.add_argument(
         '--save_path',
-        default='/home/yunfan/data/e2e_parking/',
+        default='./e2e_parking/',
         help='path to save sensor data (default: ./results/)')
     argparser.add_argument(
         '--task_num',

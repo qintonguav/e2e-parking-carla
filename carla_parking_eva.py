@@ -94,11 +94,11 @@ def main():
         help='Gamma correction of the camera (default: 0.0)')
     argparser.add_argument(
         '--model_path',
-        default='/home/dlonng/Documents/E2EParking/e2e-vehicle/ckpt/exp_2023_9_2_13_8_47/last.ckpt',
+        default='./ckpt/last.ckpt',
         help='path to model.ckpt')
     argparser.add_argument(
         '--model_config_path',
-        default='/home/dlonng/Documents/E2EParking/e2e-vehicle/config/training.yaml',
+        default='./config/training.yaml',
         help='path to model training.yaml')
     argparser.add_argument(
         '--eva_epochs',
