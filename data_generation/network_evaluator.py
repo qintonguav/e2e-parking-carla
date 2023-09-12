@@ -479,7 +479,7 @@ class NetworkEvaluator:
         df_mean = pd.DataFrame()
         df_std = pd.DataFrame()
         csv_files = glob.glob(f'{self._eva_result_path}/*_result.csv')
-        for i in range(16):
+        for i in range(self._eva_task_nums):
             df_row_i = pd.DataFrame()
             for csv in csv_files:
                 df_csv = pd.read_csv(csv)
@@ -497,8 +497,11 @@ class NetworkEvaluator:
         df_mean = pd.concat([df_mean, row_mean], axis=0)
         df_std = pd.concat([df_std, row_std], axis=0)
 
-        name = ['2-1', '2-3', '2-5', '2-7', '2-9', '2-11', '2-13', '2-15',
-                '3-1', '3-3', '3-5', '3-7', '3-9', '3-11', '3-13', '3-15', 'Avg']
+        all_name = ['2-1', '2-3', '2-5', '2-7', '2-9', '2-11', '2-13', '2-15',
+                    '3-1', '3-3', '3-5', '3-7', '3-9', '3-11', '3-13', '3-15']
+        name = all_name[:self._eva_task_nums]
+        name.append('Avg')
+
         df_mean.index = name
         df_std.index = name
 
