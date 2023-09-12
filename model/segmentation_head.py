@@ -41,7 +41,7 @@ class SegmentationHead(nn.Module):
     def forward(self, fuse_feature):
         fuse_feature_t = fuse_feature.transpose(1, 2)
         b, c, s = fuse_feature_t.shape
-        fuse_dev = torch.reshape(fuse_feature_t, (b, c, int(math.sqrt(s)), -1))
-        fuse_dev = self.top_down(fuse_dev)
-        pred_segmentation = self.segmentation_head(fuse_dev)
+        fuse_bev = torch.reshape(fuse_feature_t, (b, c, int(math.sqrt(s)), -1))
+        fuse_bev = self.top_down(fuse_bev)
+        pred_segmentation = self.segmentation_head(fuse_bev)
         return pred_segmentation
