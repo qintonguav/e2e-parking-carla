@@ -470,8 +470,8 @@ class NetworkEvaluator:
     def save_csv(self, info_df, csv_name):
         info_df = info_df.T
         info_df.rename(columns=self._metric_names, inplace=True)
-        pd.set_option('display.max_columns', 100)
-        pd.options.display.float_format = '{:,.2f}'.format
+        pd.set_option('display.max_columns', 1000)
+        pd.options.display.float_format = '{:,.3f}'.format
         print(info_df)
         info_df.to_csv(self._eva_result_path / csv_name)
 
@@ -497,13 +497,13 @@ class NetworkEvaluator:
         df_mean = pd.concat([df_mean, row_mean], axis=0)
         df_std = pd.concat([df_std, row_std], axis=0)
 
-        name = ['2-1', '2-3', '2-5', '2-7', '3-9', '2-11', '2-13', '2-15',
+        name = ['2-1', '2-3', '2-5', '2-7', '2-9', '2-11', '2-13', '2-15',
                 '3-1', '3-3', '3-5', '3-7', '3-9', '3-11', '3-13', '3-15', 'Avg']
         df_mean.index = name
         df_std.index = name
 
-        pd.set_option('display.max_columns', 100)
-        pd.options.display.float_format = '{:,.2f}'.format
+        pd.set_option('display.max_columns', 1000)
+        pd.options.display.float_format = '{:,.3f}'.format
 
         logging.info('Mean')
         print(df_mean)
