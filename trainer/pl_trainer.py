@@ -77,8 +77,8 @@ class ParkingTrainingModule(pl.LightningModule):
         })
 
         self.log_dict(loss_dict)
-        self.log_segmentation(pred_segmentation, batch['segmentation'], 'segmentation')
-        self.log_depth(pred_depth, batch['depth'], 'depth')
+        # self.log_segmentation(pred_segmentation, batch['segmentation'], 'segmentation')
+        # self.log_depth(pred_depth, batch['depth'], 'depth')
 
         return train_loss
 
@@ -108,8 +108,8 @@ class ParkingTrainingModule(pl.LightningModule):
         })
 
         self.log_dict(val_loss_dict)
-        self.log_segmentation(pred_segmentation, batch['segmentation'], 'segmentation_val')
-        self.log_depth(pred_depth, batch['depth'], 'depth_val')
+        # self.log_segmentation(pred_segmentation, batch['segmentation'], 'segmentation_val')
+        # self.log_depth(pred_depth, batch['depth'], 'depth_val')
 
         return val_loss
 
