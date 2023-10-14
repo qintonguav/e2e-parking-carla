@@ -167,4 +167,4 @@ The main variables to set for this script:
 --shuffle_weather   -> shuffle weather between tasks (default: False)
 --random_seed       -> random seed to initialize env (default: 0)
 ```
-When 
+When evaluation is completed, metrics will be saved to csv files located at '--eva_result_path'.

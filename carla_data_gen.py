@@ -88,7 +88,7 @@ def main():
     argparser.add_argument(
         '--save_path',
         default='./e2e_parking/',
-        help='path to save sensor data (default: ./results/)')
+        help='path to save sensor data (default: ./e2e_parking/)')
     argparser.add_argument(
         '--task_num',
         default=16,

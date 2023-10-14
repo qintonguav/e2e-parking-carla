@@ -1,6 +1,6 @@
 parking_model:
   # train
-  data_dir: '/media/dlonng/Data/E2EParking/dataset/test/'
+  data_dir: './e2e_parking/'
   log_dir: './log/'
   checkpoint_dir: './ckpt'
   log_every_n_steps: 10
