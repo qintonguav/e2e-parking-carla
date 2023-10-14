@@ -1,4 +1,4 @@
-name: e2e-vehicle
+name: e2e-apa
 channels:
   - pytorch
   - nvidia
