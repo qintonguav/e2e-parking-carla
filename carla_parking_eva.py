@@ -86,7 +86,7 @@ def main():
         '--res',
         metavar='WIDTHxHEIGHT',
         default='860x480',
-        help='window resolution (default: 1280x720)')
+        help='window resolution (default: 860x480)')
     argparser.add_argument(
         '--gamma',
         default=0.0,
@@ -124,7 +124,7 @@ def main():
         '--shuffle_veh',
         default=True,
         type=str2bool,
-        help='shuffle static vehicles between tasks (default: False)')
+        help='shuffle static vehicles between tasks (default: True)')
     argparser.add_argument(
         '--shuffle_weather',
         default=False,
@@ -132,7 +132,7 @@ def main():
         help='shuffle weather between tasks (default: False)')
     argparser.add_argument(
         '--random_seed',
-        default=11,
+        default=0,
         help='random seed to initialize env; if sets to 0, use current timestamp as seed (default: 0)')
     argparser.add_argument(
         '--bev_render_device',
