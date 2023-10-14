@@ -8,7 +8,7 @@ This repository contains the code for the RA-L 2024 paper (under reviewing)
 [E2E Parking: Autonomous Parking by the End-to-end Neural Network, from Images to Control Signals](https://drive.google.com/file/d/1WzA6KJq21f7XSUNrIQsTt_aw3hKns0fw/view?usp=drive_link).
 
 This work presents an end-to-end neural network
-to handle parking tasks. The input is the image captured by
+to handle parking tasks. The input are the images captured by
 surrounding cameras, while the outputs are control signals. 
 The network learns
 how to control the vehicle by imitating experienced drivers.
@@ -30,7 +30,7 @@ Clone the repo, setup CARLA 0.9.11, and build the conda environment:
 git clone git@github.com:qintonguav/e2e-vehicle.git
 cd e2e-vehicle/
 conda env create -f environment.yml
-conda activate e2e-apa
+conda activate E2EParking
 chmod +x setup_carla.sh
 ./setup_carla.sh
 ```
@@ -89,7 +89,7 @@ In addition to the dataset itself, we have provided the tools for manual parking
 The first step is to launch a CARLA server:
 
 ```Shell
-./carla/CarlaUE4.sh
+./carla/CarlaUE4.sh -opengl
 ```
 
 In a separate terminal, use the script below for generating training data:
@@ -148,7 +148,7 @@ line 42: num_gpus = 8
 Similar to data generation, the first step is also to launch a CARLA server:
 
 ```Shell
-./carla/CarlaUE4.sh
+./carla/CarlaUE4.sh -opengl
 ```
 
 In a separate terminal, use the script below for trained model evaluation:
