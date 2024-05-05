@@ -1,4 +1,4 @@
-# E2E Parking: Autonomous Parking by the End-to-end Neural Network, from Images to Control Signals
+# E2E Parking: Autonomous Parking by the End-to-end Neural Network on the CARLA Simulator
 
 ## [Paper](resource/E2E_APA_IV24_final.pdf)  [Slides](resource/E2E_APA_IV24_Slides_final.pdf)
 
