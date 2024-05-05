@@ -1,14 +1,14 @@
 # E2E Parking: Autonomous Parking by the End-to-end Neural Network, from Images to Control Signals
 
-## [Paper](https://drive.google.com/file/d/1WzA6KJq21f7XSUNrIQsTt_aw3hKns0fw/view?usp=drive_link)  [Slides](https://kashyap7x.github.io/assets/pdf/talks/Chitta2022AIR.pdf)
+## [Paper](resource/E2E_APA_IV24_final.pdf)  [Slides](resource/E2E_APA_IV24_Slides_final.pdf)
 
 <img src="resource/readme_image1.png">
 
-This repository contains the code for the RA-L 2024 paper (under reviewing) 
-[E2E Parking: Autonomous Parking by the End-to-end Neural Network, from Images to Control Signals](https://drive.google.com/file/d/1WzA6KJq21f7XSUNrIQsTt_aw3hKns0fw/view?usp=drive_link).
+This repository contains the code for the IEEE Intelligent Vehicles Symposium (IV 2024) paper 
+[E2E Parking: Autonomous Parking by the End-to-end Neural Network on the CARLA Simulator](resource/E2E_APA_IV24_final.pdf).
 
 This work presents an end-to-end neural network
-to handle parking tasks. The input are the images captured by
+to handle parking tasks. The inputs are the images captured by
 surrounding cameras, while the outputs are control signals. 
 The network learns
 how to control the vehicle by imitating experienced drivers.
