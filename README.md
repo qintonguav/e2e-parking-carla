@@ -36,7 +36,6 @@ chmod +x setup_carla.sh
 ```
 CUDA 11.7 is used as default. We also validate the compatibility of CUDA 10.2 and 11.3.
 
-**Optional**
 
 Install CARLA python library to the conda env:
 ```Shell
