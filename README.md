@@ -21,6 +21,7 @@ CARLA simulator is utilized for training data generation and closed-loop evaluat
 1. [Setup](#setup)
 2. [Dataset and Training](#dataset-and-training)
 3. [Evaluation](#evaluation)
+4. [Bibtex](#bibtex)
 
 
 ## Setup
@@ -44,10 +45,12 @@ cd carla/PythonAPI/carla/dist/
 unzip carla-0.9.11-py3.7-linux-x86_64.egg -d carla-0.9.11-py3.7-linux-x86_64
 cd carla-0.9.11-py3.7-linux-x86_64/
 echo "install_carla"
+
 cat>setup.py<<EOF
 from distutils.core import setup
 setup(name='carla', version='0.9.11', py_modules=['carla'],)
 EOF
+
 cd ..
 pip install -e carla-0.9.11-py3.7-linux-x86_64
 cd ../../../..
@@ -168,3 +171,15 @@ The main variables to set for this script:
 --random_seed       -> random seed to initialize env (default: 0)
 ```
 When evaluation is completed, metrics will be saved to csv files located at '--eva_result_path'.
+
+## Bibtex
+If this work is helpful for your research, please consider citing the following BibTeX entry.
+
+```
+@inproceedings{E2EAPA,
+	title={E2E Parking: Autonomous Parking by the End-to-end Neural Network on the CARLA Simulator},
+	author={Yang, Yunfan and Chen, Denglong and Qin, Tong and Mu, Xiangru and Xu, Chunjing and Yang, Ming},
+	booktitle={Conference on IEEE Intelligent Vehicles Symposium},
+	year={2024}
+}
+```
