@@ -38,25 +38,6 @@ chmod +x setup_carla.sh
 ```
 CUDA 11.7 is used as default. We also validate the compatibility of CUDA 10.2 and 11.3.
 
-
-Install CARLA python library to the conda env:
-```Shell
-cd carla/PythonAPI/carla/dist/
-unzip carla-0.9.11-py3.7-linux-x86_64.egg -d carla-0.9.11-py3.7-linux-x86_64
-cd carla-0.9.11-py3.7-linux-x86_64/
-echo "install_carla"
-
-cat>setup.py<<EOF
-from distutils.core import setup
-setup(name='carla', version='0.9.11', py_modules=['carla'],)
-EOF
-
-cd ..
-pip install -e carla-0.9.11-py3.7-linux-x86_64
-cd ../../../..
-```
-
-
 ## Dataset and Training
 Our dataset is generated in an open parking lot in map Town_04.
 In total, we gathered 192 routes of parking data, counting to around 38k frames.
