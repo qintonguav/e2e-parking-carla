@@ -2,7 +2,8 @@
 
 ## [Paper](resource/E2E_APA_IV24_final.pdf)  [Slides](resource/E2E_APA_IV24_Slides_final.pdf)
 
-<img src="resource/readme_image1.png">
+<img src="resource/front_video_final.gif">
+<img src="resource/detail_video_2_final.gif">
 
 This repository contains the code for the IEEE Intelligent Vehicles Symposium (IV 2024) paper 
 [E2E Parking: Autonomous Parking by the End-to-end Neural Network on the CARLA Simulator](resource/E2E_APA_IV24_final.pdf).
