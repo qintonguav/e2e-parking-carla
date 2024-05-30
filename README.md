@@ -129,6 +129,9 @@ line 42: num_gpus = 8
 ```
 
 ## Evaluation
+For evaluation, we prepare a [pre-trained model](https://drive.google.com/file/d/1XOlzBAb9W91R6WOB-srgdY8AZH3fXlML/view?usp=sharing). Due to enterprise restrictions, this pre-trained model has an overall success rate of around 75%, which is not our best-performing model. We recommend you generate the training dataset by yourself using our data generation pipeline.
+
+
 Similar to data generation, the first step is also to launch a CARLA server:
 
 ```Shell
