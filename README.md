@@ -19,8 +19,8 @@ CARLA simulator is utilized for training data generation and closed-loop evaluat
 ## Contents
 
 1. [Setup](#setup)
-2. [Dataset and Training](#dataset-and-training)
-3. [Evaluation](#evaluation)
+2. [Evaluation](#Evaluation (Inference with pre-trained model))
+3. [Dataset and Training](#dataset-and-training)
 4. [Bibtex](#bibtex)
 
 
@@ -29,8 +29,8 @@ CARLA simulator is utilized for training data generation and closed-loop evaluat
 Clone the repo, setup CARLA 0.9.11, and build the conda environment:
 
 ```Shell
-git clone git@github.com:qintonguav/e2e-vehicle.git
-cd e2e-vehicle/
+git clone https://github.com/qintonguav/e2e-parking-carla.git
+cd /e2e-parking-carla/
 conda env create -f environment.yml
 conda activate E2EParking
 chmod +x setup_carla.sh
