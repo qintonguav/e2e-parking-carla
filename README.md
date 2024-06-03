@@ -16,13 +16,6 @@ how to control the vehicle by imitating experienced drivers.
 
 CARLA simulator is utilized for training data generation and closed-loop evaluation.
 
-## Contents
-
-1. [Setup](#setup)
-2. [Evaluation](#Evaluation (Inference with pre-trained model))
-3. [Dataset and Training](#dataset-and-training)
-4. [Bibtex](#bibtex)
-
 
 ## Setup
 
