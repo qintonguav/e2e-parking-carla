@@ -38,38 +38,38 @@ chmod +x setup_carla.sh
 ```
 CUDA 11.7 is used as default. We also validate the compatibility of CUDA 10.2 and 11.3.
 
-## Dataset and Training
-Our dataset is generated in an open parking lot in map Town_04.
-In total, we gathered 192 routes of parking data, counting to around 38k frames.
-You can download the dataset (50GB) by running:
+## Evaluation (Inference with pre-trained model)
+For inference, we prepare a [pre-trained model](https://drive.google.com/file/d/1XOlzBAb9W91R6WOB-srgdY8AZH3fXlML/view?usp=sharing). Due to enterprise restrictions, this pre-trained model has an overall success rate of around 75%, which is not our best-performing model. For training and evaluating the model, we recommend you generate the training dataset by yourself using our data generation pipeline.
+
+
+The first step is to launch a CARLA server:
 
 ```Shell
-chmod +x download_data.sh
-./download_data.sh
+./carla/CarlaUE4.sh -opengl
 ```
 
-The dataset is structured as follows:
-```
-- e2e_parking
-    - Training_data
-        - Routes
-            - Tasks
-                - rgb_front: front camera images
-                - rgb_left: left camera images
-                - rgb_right: right camera images
-                - rgb_rear: rear camera images
-                - depth_front: corresponding front depth images
-                - depth_left: corresponding left depth images
-                - depth_right: corresponding right depth images
-                - depth_rear: corresponding rear depth images
-                - measurements: ego-vehicle position, motion and control data
-                - parking_goal: target parking goal positon
-                - topdown: topdown segmentation maps
-    - Evaluation_data
+In a separate terminal, use the script below for trained model evaluation:
+```Shell
+python3 carla_parking_eva.py
 ```
 
-### Data generation
-In addition to the dataset itself, we have provided the tools for manual parking data generation. 
+The main variables to set for this script:
+```
+--model_path        -> path to model.ckpt
+--eva_epochs        -> number of eva epochs (default: 4')
+--eva_task_nums     -> number of evaluation task (default: 16')
+--eva_parking_nums  -> number of parking nums for every slot (default: 6')
+--eva_result_path   -> path to save evaluation result csv file
+--shuffle_veh       -> shuffle static vehicles between tasks (default: True)
+--shuffle_weather   -> shuffle weather between tasks (default: False)
+--random_seed       -> random seed to initialize env (default: 0)
+```
+When the evaluation is completed, metrics will be saved to csv files located at '--eva_result_path'.
+
+## Dataset and Training
+
+### Training Data Generation
+Since it is an imitation learning task, we have provided the tools for manual parking data generation, so that the vehicle can learn from your driving habit. 
 The first step is to launch a CARLA server:
 
 ```Shell
@@ -95,19 +95,19 @@ Keyboard Control:
 w/a/s/d:    throttle/left_steer/right_steer/hand_brake
 space:      brake
 q:          reverse gear
-BackSpace:  reset current task
+BackSpace:  reset the current task
 TAB:        switch camera view
 ```
 
-Conditions for a successful parking:
+Conditions for successful parking:
 ```
 position: vehicle center to slot center < 0.5 meter
 orientation: rotation error < 0.5 degree
-duration: satisfy above two conditions for 60 frames
+duration: satisfy the above two conditions for 60 frames
 ```
-Target parking slot is marked with a red 'T'. 
+The target parking slot is marked with a red 'T'. 
 
-Automatically switch to next task when current one is completed.
+Automatically switch to the next task when the current one is completed.
 
 Any collisions will reset the task.
 
@@ -128,33 +128,7 @@ line 14: os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3,4,5,6,7'
 line 42: num_gpus = 8
 ```
 
-## Evaluation
-For evaluation, we prepare a [pre-trained model](https://drive.google.com/file/d/1XOlzBAb9W91R6WOB-srgdY8AZH3fXlML/view?usp=sharing). Due to enterprise restrictions, this pre-trained model has an overall success rate of around 75%, which is not our best-performing model. For training and evaluating the model, we recommend you generate the training dataset by yourself using our data generation pipeline.
 
-
-Similar to data generation, the first step is also to launch a CARLA server:
-
-```Shell
-./carla/CarlaUE4.sh -opengl
-```
-
-In a separate terminal, use the script below for trained model evaluation:
-```Shell
-python3 carla_parking_eva.py
-```
-
-The main variables to set for this script:
-```
---model_path        -> path to model.ckpt
---eva_epochs        -> number of eva epochs (default: 4')
---eva_task_nums     -> number of evaluation task (default: 16')
---eva_parking_nums  -> number of parking nums for every slot (default: 6')
---eva_result_path   -> path to save evaluation result csv file
---shuffle_veh       -> shuffle static vehicles between tasks (default: True)
---shuffle_weather   -> shuffle weather between tasks (default: False)
---random_seed       -> random seed to initialize env (default: 0)
-```
-When evaluation is completed, metrics will be saved to csv files located at '--eva_result_path'.
 
 ## Bibtex
 If this work is helpful for your research, please consider citing the following BibTeX entry.
